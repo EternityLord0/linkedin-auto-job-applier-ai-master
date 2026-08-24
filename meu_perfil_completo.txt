@@ -1,0 +1,71 @@
+
+### HEADER - erro: Message: no such element: Unable to locate element: {"method":"xpath","selector":"//h1"}
+  (Session info: chrome=151.0.7922.138); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	undetected_chromedriver!GetHandleVerifier [0xee3353+fd93]
+	undetected_chromedriver!GetHandleVerifier [0xee3394+fdd4]
+	undetected_chromedriver!(No symbol) [0xcd9220]
+	undetected_chromedriver!(No symbol) [0xd232fb]
+	undetected_chromedriver!(No symbol) [0xd2351b]
+	undetected_chromedriver!(No symbol) [0xd65b82]
+	undetected_chromedriver!(No symbol) [0xd458c4]
+	undetected_chromedriver!(No symbol) [0xd634d9]
+	undetected_chromedriver!(No symbol) [0xd45616]
+	undetected_chromedriver!(No symbol) [0xd187e9]
+	undetected_chromedriver!(No symbol) [0xd195b4]
+	undetected_chromedriver!GetHandleVerifier [0x117f51a+2abf5a]
+	undetected_chromedriver!GetHandleVerifier [0x117aa21+2a7461]
+	undetected_chromedriver!GetHandleVerifier [0xf0f374+3bdb4]
+	undetected_chromedriver!GetHandleVerifier [0xefe036+2aa76]
+	undetected_chromedriver!GetHandleVerifier [0xf04efd+3193d]
+	undetected_chromedriver!GetHandleVerifier [0xeec8a8+192e8]
+	undetected_chromedriver!GetHandleVerifier [0xeeca55+19495]
+	undetected_chromedriver!GetHandleVerifier [0xed53ff+1e3f]
+	KERNEL32!BaseThreadInitThunk [0x75b1fcc9+19]
+	ntdll!RtlGetAppContainerNamedObjectPath [0x777382ae+11e]
+	ntdll!RtlGetAppContainerNamedObjectPath [0x7773827e+ee]
+ ###
+
+============================================================
+### SOBRE - (não encontrado) ###
+============================================================
+
+============================================================
+### EM DESTAQUE - (não encontrado) ###
+============================================================
+
+============================================================
+### EXPERIÊNCIAS PROFISSIONAIS - (não encontrado) ###
+============================================================
+
+============================================================
+### EDUCAÇÃO - (não encontrado) ###
+============================================================
+
+============================================================
+### LICENÇAS E CERTIFICAÇÕES - (não encontrado) ###
+============================================================
+
+============================================================
+### COMPETÊNCIAS / SKILLS - (não encontrado) ###
+============================================================
+
+============================================================
+### PROJETOS - (não encontrado) ###
+============================================================
+
+============================================================
+### IDIOMAS - (não encontrado) ###
+============================================================
+
+============================================================
+### RECOMENDAÇÕES - (não encontrado) ###
+============================================================
+
+============================================================
+### CONQUISTAS E PRÊMIOS - (não encontrado) ###
+============================================================
+
+============================================================
+### PUBLICAÇÕES - (não encontrado) ###
+============================================================
