@@ -6,7 +6,7 @@ ______________________________________________________________________
 
 OBJETIVO
 
-Atuar na Claro.
+Atuar na interface entre tecnologia, dados e estratégia de negócios em projetos de consultoria, aplicando metodologias ágeis e engenharia analítica para acelerar a transformação digital e a eficiência operacional dos clientes.
 
 ______________________________________________________________________
 
