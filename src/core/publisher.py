@@ -30,7 +30,7 @@ class LinkedInPublisher:
             logger.warning("User is not logged in. Prompting for manual login...")
             self.scraper.manual_login_retry()
 
-    def create_post(self, post_text: str, banner_path: str = None, dry_run: bool = False) -> bool:
+    def create_post(self, post_text: str, banner_path: str | None = None, dry_run: bool = False) -> bool:
         """
         Creates and optionally publishes a post on LinkedIn with optional media banner.
         

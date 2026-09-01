@@ -147,7 +147,7 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
             logger.warning(f"Failed to evaluate job relevance with Gemini: {e}")
             return True
 
-    def _try_local_fast_answer(self, question: str, question_type: str, options: list = None) -> str | None:
+    def _try_local_fast_answer(self, question: str, question_type: str, options: list | None = None) -> str | None:
         """Local pattern matcher to answer common form questions without API calls (0 tokens)."""
         q_lower = question.lower()
 
@@ -300,7 +300,7 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
 
         # 17. Numeric Experience Questions ("Quantos anos de experiência...")
         if any(term in q_lower for term in ['quantos anos', 'anos de experiência', 'anos de experiencia', 'tempo de experiência', 'tempo de experiencia', 'how many years', 'years of experience', 'years do you have']):
-            base_years = int(questions_data.years_of_experience)
+            base_years = questions_data.years_of_experience
             extra_year = 1 if questions_data.additional_months_of_experience >= 6 else 0
             exp_str = str(base_years + extra_year)
             if question_type in ['text', 'textarea'] or not options:
@@ -322,7 +322,7 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
         return None
 
     def answer_question(self, question: str, question_type: str, job_description: str,
-                        options: list = None) -> str:
+                        options: list | None = None) -> str:
         # Check local rule engine first (0 tokens)
         local_ans = self._try_local_fast_answer(question, question_type, options)
         if local_ans:
