@@ -10,23 +10,18 @@ from config.schema.search_model import SearchModel
 # ==========================================
 search_data = SearchModel(
     search_terms=[
-        "Engenheiro Químico", 
-        "Engenharia Química", 
-        "Engenheiro de Processos", 
-        "Engenheiro de Produção", 
-        "Engenheiro", 
-        "Engenheiro Comercial", 
-        "Engenheiro de Vendas", 
-        "Consultor Técnico", 
-        "Vendas Técnicas", 
-        "Gerente de Contas Técnico",
-        "Analista Comercial",
-        "Engenheiro de IA",
         "AI Engineer",
-        "Inteligência Artificial",
+        "Engenheiro de IA",
+        "Product Manager",
+        "Analytics Engineer",
+        "Supervisor de E-commerce",
+        "E-commerce Manager",
+        "Desenvolvedor Full Stack",
+        "Software Engineer",
+        "Product Owner",
         "Cientista de Dados",
         "Engenheiro de Dados",
-        "Machine Learning"
+        "Tech Product Manager"
     ],
     search_location="Brasil",
     switch_number=30,
@@ -37,7 +32,7 @@ search_data = SearchModel(
     easy_apply_only=True,
     experience_level=[],
     job_type=["Full-time"],
-    on_site=["Remote", "Hybrid", "On-site"],
+    on_site=["Remote"],
     companies=[],
     location=[],
     industry=[],
@@ -48,11 +43,11 @@ search_data = SearchModel(
     under_10_applicants=False,
     in_your_network=False,
     fair_chance_employer=False,
-    job_title_bad_words=["Estágio", "Intern", "Jovem Aprendiz", "Director", "VP"],
+    job_title_bad_words=["Estágio", "Intern", "Jovem Aprendiz", "Director", "VP", "Trainee", "Voluntário"],
     job_desc_bad_words=["Sem remuneração", "Voluntário"],
     about_company_bad_words=["Crossover"],
     about_company_good_words=[],
     security_clearance=False,
     did_masters=False,
-    current_experience=5
+    current_experience=6
 )

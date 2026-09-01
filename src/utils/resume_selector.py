@@ -15,24 +15,29 @@ def select_resume_path(job_title: str, job_description: str) -> str:
     desc_lower = (job_description or "").lower()
     full_text = f"{title_lower} {desc_lower}"
 
-    # 1. AI / Machine Learning / Data Science Keywords
+    # 1. AI / Tech / Software / Data / Product Keywords
     ai_keywords = [
         "inteligência artificial", "inteligencia artificial", "artificial intelligence",
         "machine learning", "deep learning", "llm", "data science", "cientista de dados",
-        "engenheiro de ia", "ai engineer", "prompt engineer", "visão computacional", "nlp"
+        "engenheiro de ia", "ai engineer", "prompt engineer", "visão computacional", "nlp",
+        "desenvolvedor", "developer", "software engineer", "full stack", "fullstack",
+        "frontend", "front-end", "backend", "back-end", "react", "typescript", "python",
+        "product manager", "product owner", "tech product", "analytics engineer"
     ]
 
-    # 2. Commercial / Sales / Account Management Keywords
+    # 2. Commercial / E-commerce / Sales / Account Management Keywords
     comercial_keywords = [
+        "e-commerce", "ecommerce", "marketplace", "marketplaces", "canal direto", "mercado livre",
         "comercial", "vendas", "vendas técnicas", "vendas tecnicas", "consultor técnico",
         "consultor tecnico", "gerente de contas", "account executive", "account manager",
-        "sales", "business development", "desenvolvimento de negócios", "inside sales", "b2b"
+        "sales", "business development", "desenvolvimento de negócios", "inside sales", "b2b", "pricing"
     ]
 
-    # 3. Engineering / Process Keywords
+    # 3. Engineering / Process / Operations Keywords
     engineering_keywords = [
         "engenharia", "engenheiro", "processos", "process engineer", "químico", "quimica",
-        "engenheiro químico", "engenheiro quimico", "qualidade", "produção", "projetos", "planta"
+        "engenheiro químico", "engenheiro quimico", "qualidade", "produção", "projetos", "planta",
+        "planejamento", "pcp", "s&op", "operações", "operacoes", "lean"
     ]
 
     # Matching priority: AI -> Commercial -> Engineering -> Default

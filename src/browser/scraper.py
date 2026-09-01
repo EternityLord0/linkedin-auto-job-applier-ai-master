@@ -407,23 +407,39 @@ class LinkedInScraper:
                     w in job_desc_lower for w in ['polygraph', 'clearance', 'secret']):
                 return job_desc, "Requires security clearance"
 
-            import re
-
-            self.re_experience = re.compile(
-                r'(\d+)\s*(?:\+|(?:-|to|–)\s*\d+)?\s*year[s]?',
+            # Check Experience Requirements safely (PT & EN)
+            re_req_experience = re.compile(
+                r'(?:m[íi]nimo\s+(?:de\s+)?|at\s+least\s+|minimum\s+(?:of\s+)?|experi[êe]ncia\s+(?:m[íi]nima\s+)?(?:de\s+)?|experience\s*(?:of\s*)?:?\s*|requir(?:es?|ed)\s*(?:of\s*)?:?\s*)'
+                r'(\d{1,2})\s*(?:\+|(?:-|a|to|–)\s*\d{1,2})?\s*(?:year|ano)s?',
+                re.IGNORECASE
+            )
+            re_direct_experience = re.compile(
+                r'(\d{1,2})\s*(?:\+|(?:-|a|to|–)\s*\d{1,2})?\s*(?:year|ano)s?\s*(?:de\s+experi[êe]ncia|of\s+experience|de\s+atua[çc][ãa]o)',
                 re.IGNORECASE
             )
 
-            # Check Experience
-            matches = self.re_experience.findall(job_desc)
+            # Filter out general company market presence mentions (e.g. "10 anos de mercado")
+            cleaned_desc_lines = []
+            for line in job_desc.split('\n'):
+                line_lower = line.lower()
+                if any(skip_term in line_lower for skip_term in [
+                    'de mercado', 'no mercado', 'in the market', 'in business', 'fundada',
+                    'founded', 'história', 'history', 'anos de vida', 'years of history'
+                ]):
+                    continue
+                cleaned_desc_lines.append(line)
+            targeted_text = "\n".join(cleaned_desc_lines)
+
+            matches = re_req_experience.findall(targeted_text) + re_direct_experience.findall(targeted_text)
             if matches:
                 exp_values = [
                     int(m)
                     for m in matches
-                    if int(m) <= 12
+                    if 0 < int(m) <= 12
                 ]
                 if exp_values:
-                    req_exp = max(exp_values)
+                    # Use min required experience found in requirement clauses
+                    req_exp = min(exp_values)
                     masters_bonus = (
                         2
                         if search_data.did_masters
@@ -518,11 +534,11 @@ class LinkedInScraper:
         """Safely checks if a job is already applied to without throwing exceptions."""
         try:
             footer_states = job_element.find_elements(By.CLASS_NAME, "job-card-container__footer-job-state")
-            if footer_states and any(term in footer_states[0].text for term in ["Applied", "Candidatura enviada", "Candidatado", "Inscrito"]):
+            if footer_states and any(term in footer_states[0].text for term in ["Applied", "Candidatura enviada", "Candidatado", "Inscrito", "Candidatou-se"]):
                 return True
 
-            application_link_xpath = "//*[contains(@class, 'jobs-s-apply__application-link')]"
-            if self.interactor.try_xpath(application_link_xpath, click=False):
+            card_applied = job_element.find_elements(By.XPATH, ".//*[contains(@class, 'jobs-s-apply__application-link') or contains(text(), 'Candidatura enviada') or contains(text(), 'Applied')]")
+            if card_applied:
                 return True
             return False
 
@@ -544,16 +560,17 @@ class LinkedInScraper:
         while attempt < max_attempts:
             try:
                 # 1. Check if the modal is even open. If not, we are done!
-                modal = self.driver.find_elements(By.XPATH, '//div[contains(@class, "jobs-easy-apply-modal")]')
+                modal = self.driver.find_elements(By.XPATH, '//div[contains(@class, "jobs-easy-apply-modal")] | //div[contains(@class, "easy-apply-modal")] | //div[contains(@id, "artdeco-modal")] | //div[@role="dialog"]')
                 if not modal:
                     logger.info("Application modal is completely closed.")
                     return
 
-                # 2. Try to click the "X" (Dismiss) button
+                # 2. Try to click the "X" (Dismiss / Descartar / Fechar) button
                 close_btn_xpaths = [
                     "//button[contains(@data-test-modal-close-btn, '')]",
-                    "//button[contains(@aria-label, 'Dismiss')]",
-                    "//li-icon[@type='cancel-icon']/parent::button"
+                    "//button[contains(@aria-label, 'Dismiss') or contains(@aria-label, 'Descartar') or contains(@aria-label, 'Fechar') or contains(@aria-label, 'Close')]",
+                    "//li-icon[@type='cancel-icon']/parent::button",
+                    "//button[contains(@class, 'artdeco-modal__dismiss')]"
                 ]
 
                 close_clicked = False
@@ -575,11 +592,13 @@ class LinkedInScraper:
                 # Wait for the confirmation dialog animation to finish
                 time.sleep(1.5)
 
-                # 3. Try to click the "Discard" confirmation button
+                # 3. Try to click the "Discard" / "Descartar" confirmation button
                 discard_confirm_xpaths = [
                     "//button[@data-control-name='discard_application_confirm_btn']",
-                    "//button[contains(@class, 'artdeco-modal__confirm-dialog-btn') and contains(., 'Discard')]",
-                    "//span[text()='Discard']/parent::button"
+                    "//button[@data-test-dialog-primary-btn]",
+                    "//button[contains(@class, 'artdeco-modal__confirm-dialog-btn') and (contains(., 'Discard') or contains(., 'Descartar') or contains(., 'Fechar'))]",
+                    "//span[text()='Discard' or text()='Descartar' or text()='Fechar']/parent::button",
+                    "//button[contains(., 'Discard') or contains(., 'Descartar')]"
                 ]
 
                 for xpath in discard_confirm_xpaths:
@@ -601,5 +620,7 @@ class LinkedInScraper:
                 time.sleep(1)
 
         # Final check to see if it closed after all attempts
-        if self.driver.find_elements(By.XPATH, '//div[contains(@class, "jobs-easy-apply-modal")]'):
+        if self.driver.find_elements(By.XPATH, '//div[contains(@class, "jobs-easy-apply-modal")] | //div[contains(@class, "easy-apply-modal")]'):
             logger.warning("Failed to discard application after 3 attempts. It might be stuck.")
+        else:
+            logger.info("Application modal is completely closed.")

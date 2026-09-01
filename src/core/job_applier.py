@@ -41,9 +41,9 @@ class JobApplier:
                 logger.warning("Could not find Easy Apply modal dialog element. Aborting application flow.")
                 return False
 
-            self.scraper.interactor.wait_span_click("Next", timeout=1)
-            self.scraper.interactor.wait_span_click("Avançar", timeout=1)
-            self.scraper.interactor.wait_span_click("Próximo", timeout=1)
+            for next_text in ["Next", "Avançar", "Próximo", "Continuar", "Seguinte"]:
+                if self.scraper.interactor.wait_span_click(next_text, timeout=0.8):
+                    break
 
             errored = ""
             questions_list = set()
@@ -63,8 +63,7 @@ class JobApplier:
                             "Help Needed", "Continue")
                         next_counter = 1
                         continue
-                    if questions_list: logger.error("Stuck for one or some of the following questions_data...",
-                                                    questions_list)
+                    if questions_list: logger.error(f"Stuck for one or some of the following questions_data...: {questions_list}")
                     self.scraper.interactor.save_screenshot(job_id, "Failed at questions")
                     errored = "stuck"
                     raise Exception("Stuck in a loop of next buttons. Aborting application.")
@@ -78,20 +77,20 @@ class JobApplier:
                     uploaded, _ = self._upload_resume(modal, target_resume)
 
                 # 3. Navigate forward (Try Review first, then Next)
-                review_btn = self.scraper.interactor.wait_span_click("Review", timeout=1, click=True)
-                if not review_btn:
-                    review_btn = self.scraper.interactor.wait_span_click("Revisar", timeout=1, click=True)
+                review_btn = False
+                for rev_text in ["Review", "Revisar", "Examinar", "Verificar"]:
+                    if self.scraper.interactor.wait_span_click(rev_text, timeout=1, click=True):
+                        review_btn = True
+                        break
 
                 if review_btn:
                     next_button = False  # Successfully clicked Review, end loop
                 else:
-                    next_btn = self.scraper.interactor.wait_span_click("Next", timeout=1, click=True)
-                    if not next_btn:
-                        next_btn = self.scraper.interactor.wait_span_click("Avançar", timeout=1, click=True)
-                    if not next_btn:
-                        next_btn = self.scraper.interactor.wait_span_click("Próximo", timeout=1, click=True)
-                    if not next_btn:
-                        next_btn = self.scraper.interactor.wait_span_click("Seguinte", timeout=1, click=True)
+                    next_btn = False
+                    for nxt_text in ["Next", "Avançar", "Próximo", "Seguinte", "Continuar"]:
+                        if self.scraper.interactor.wait_span_click(nxt_text, timeout=1, click=True):
+                            next_btn = True
+                            break
                     if not next_btn:
                         next_button = False  # Neither Review nor Next found, end loop
 
@@ -108,25 +107,40 @@ class JobApplier:
                 if decision == "Discard Application": raise Exception("Job application discarded by user!")
                 self.pause_before_submit = False if "Enable Auto-Submit" == decision else True
 
-            ## Submit Application
-            submit_btn = self.scraper.interactor.wait_span_click("Submit application", timeout=2, scroll_top=True)
+            ## Submit Application (PT & EN)
+            submit_btn = False
+            submit_labels = [
+                "Submit application", "Submit", "Enviar candidatura", "Enviar",
+                "Enviar inscrição", "Concluir candidatura", "Concluir inscrição",
+                "Avançar para a candidatura", "Candidatar-se", "Fazer candidatura"
+            ]
+            for label in submit_labels:
+                if self.scraper.interactor.wait_span_click(label, timeout=1.5, scroll_top=True):
+                    submit_btn = True
+                    logger.info(f"Successfully clicked submit button: '{label}'")
+                    break
+
+            # Fallback directly on modal footer buttons if span matching was missed
             if not submit_btn:
-                submit_btn = self.scraper.interactor.wait_span_click("Submit", timeout=2, scroll_top=True)
-            if not submit_btn:
-                submit_btn = self.scraper.interactor.wait_span_click("Enviar candidatura", timeout=2, scroll_top=True)
-            if not submit_btn:
-                submit_btn = self.scraper.interactor.wait_span_click("Enviar", timeout=2, scroll_top=True)
-            if not submit_btn:
-                submit_btn = self.scraper.interactor.wait_span_click("Enviar inscrição", timeout=2, scroll_top=True)
+                try:
+                    footer_buttons = modal.find_elements(By.XPATH, ".//footer//button[contains(@class, 'artdeco-button--primary')]")
+                    for btn in footer_buttons:
+                        btn_txt = btn.text.strip().lower()
+                        if any(term in btn_txt for term in ['submit', 'enviar', 'concluir', 'candidat']):
+                            self.scraper.interactor.human_click(btn)
+                            submit_btn = True
+                            logger.info(f"Clicked primary submit button in modal footer: '{btn_txt}'")
+                            break
+                except Exception as e:
+                    logger.debug(f"Footer primary button check: {e}")
 
             if submit_btn or (errored != "stuck" and self.pause_before_submit and "Yes" in pyautogui.confirm(
                     "You submitted the application, didn't you ??", "Failed to find Submit Application!",
                     ["Yes", "No"])):
                 time.sleep(1.5)
                 self._handle_post_submit_popup()
-                self.scraper.interactor.wait_span_click("Done", timeout=3)
-                self.scraper.interactor.wait_span_click("Concluído", timeout=1)
-                self.scraper.interactor.wait_span_click("Concluir", timeout=1)
+                for done_text in ["Done", "Concluído", "Concluir", "Fechar", "Dismiss"]:
+                    self.scraper.interactor.wait_span_click(done_text, timeout=1)
                 return questions_list
             else:
                 logger.warning("Since Submit Application failed, discarding the job application...")

@@ -8,6 +8,10 @@ import time
 from datetime import datetime
 
 import pyautogui
+try:
+    import pymsgbox
+except ImportError:
+    pymsgbox = None
 from selenium.common.exceptions import NoSuchWindowException, WebDriverException
 
 from config.search import search_data
@@ -101,16 +105,27 @@ class BotEngine:
 
         encoded_term = urllib.parse.quote(search_term)
 
+        # Build dynamic date filter parameter
+        date_param = "&f_TPR=r604800"  # default 1 week
+        if search_data.date_posted in ["Past 24 hours", "Nas últimas 24 horas", "Últimas 24 horas"]:
+            date_param = "&f_TPR=r86400"
+        elif search_data.date_posted in ["Past week", "Última semana", "Na última semana"]:
+            date_param = "&f_TPR=r604800"
+        elif search_data.date_posted in ["Past month", "No último mês", "Último mês"]:
+            date_param = "&f_TPR=r2592000"
+        elif search_data.date_posted in ["Any time", "A qualquer momento", "Qualquer momento"]:
+            date_param = ""
+
         # Build target search URLs for:
-        # 1. Remote jobs across Brazil (f_WT=2, f_AL=true, f_TPR=r604800)
-        # 2. On-site/Hybrid jobs within 160km of SJRP (location=SJRP, distance=100, f_WT=1,3, f_AL=true, f_TPR=r604800)
+        # 1. Remote jobs across Brazil (f_WT=2, f_AL=true)
+        # 2. On-site/Hybrid jobs within 160km of SJRP (location=SJRP, distance=100, f_WT=1,3, f_AL=true)
         search_urls = [
             (
-                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=Brasil&f_WT=2&f_AL=true&f_TPR=r604800",
+                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=Brasil&f_WT=2&f_AL=true{date_param}",
                 "Remoto (Brasil todo)"
             ),
             (
-                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=100&f_WT=1%2C3&f_AL=true&f_TPR=r604800",
+                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=100&f_WT=1%2C3&f_AL=true{date_param}",
                 "Presencial/Híbrido (até 160km SJRP)"
             )
         ]
@@ -124,7 +139,7 @@ class BotEngine:
             self.scraper.interactor.sleep_buffer(2, 4)
 
             # URL already contains exact location, work style, Easy Apply, and Date Posted parameters
-            if self.pause_after_filters and "Turn off Pause after search" == pymsgbox.confirm(
+            if self.pause_after_filters and pymsgbox and "Turn off Pause after search" == pymsgbox.confirm(
                     "These are your configured search results and filter. It is safe to change them while this dialog is open, any changes later could result in errors and skipping this search run.",
                     "Please check your results", ("Turn off Pause after search", "Look's good, Continue")):
                 self.pause_after_filters = False
@@ -174,8 +189,11 @@ class BotEngine:
         job_id = details.get('job_id')
         job_title = details.get('title', 'Unknown')
 
+        if not job_id:
+            return False
+
         if job_id in self.applied_jobs or self.scraper.is_already_applied(
-                job_element) or details.get('company') in self.blacklisted_companies:
+                job_element) or (details.get('company') and details.get('company') in self.blacklisted_companies):
             logger.info(f"Skipping job {job_id} (Already applied/blacklisted company)")
             self.skip_count += 1
             return False
