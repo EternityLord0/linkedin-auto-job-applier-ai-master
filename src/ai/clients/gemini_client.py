@@ -20,13 +20,7 @@ class GeminiClient:
     def __init__(self):
         logger.info("Initializing Gemini Client...")
 
-        if not secrets_data.llm_api_key or "YOUR_API_KEY" in secrets_data.llm_api_key:
-            raise ValueError("Gemini API key is not set. Please configure it in config/secrets.py")
-
-        genai.configure(api_key=secrets_data.llm_api_key)
-        self.model = genai.GenerativeModel(secrets_data.llm_model)
-
-        # Define relaxed safety settings for job applications to prevent false positives
+        self.model = None
         self.safety_settings = [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -36,8 +30,17 @@ class GeminiClient:
 
         self.resume_text = self._extract_resume_text()
 
-        logger.info("---- SUCCESSFULLY CONFIGURED GEMINI CLIENT! ----")
-        logger.info(f"Using Model: {secrets_data.llm_model}")
+        api_key = secrets_data.llm_api_key
+        if api_key and "YOUR_API_KEY" not in api_key:
+            try:
+                genai.configure(api_key=api_key)
+                self.model = genai.GenerativeModel(secrets_data.llm_model)
+                logger.info("---- SUCCESSFULLY CONFIGURED GEMINI ONLINE CLIENT! ----")
+                logger.info(f"Using Model: {secrets_data.llm_model}")
+            except Exception as e:
+                logger.warning(f"Could not configure online Gemini model ({e}). Continuing in Local Fast-Answer mode.")
+        else:
+            logger.info("---- GEMINI LOCAL FAST-ANSWER MODE ACTIVE (0 Tokens / Offline Rules) ----")
 
     def _extract_resume_text(self) -> str:
         """Extracts text content from resume PDF if present."""
@@ -96,6 +99,8 @@ class GeminiClient:
         return "\n".join(context_parts)
 
     def extract_skills(self, job_description: str) -> dict | str:
+        if not self.model:
+            return "Skipped (Offline Mode)"
         logger.info("-- EXTRACTING SKILLS FROM JOB DESCRIPTION [Gemini]")
         prompt = extract_skills_prompt.format(
             job_description) + "\n\nImportant: Respond with ONLY valid JSON, no markdown formatting."
@@ -125,6 +130,8 @@ class GeminiClient:
 
     def evaluate_job_relevance(self, job_title: str, job_description: str) -> bool:
         """Evaluates whether the job is relevant to AI, Software, Product, Data, E-commerce or Engineering."""
+        if not self.model:
+            return True
         prompt = f"""
 Given the candidate's background as an AI Product Builder & E-commerce/Data Supervisor (with full stack skills: React, TypeScript, Supabase, Python, LLMs and engineering background), evaluate if the following job is relevant.
 Job Title: {job_title}
@@ -328,6 +335,9 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
         if local_ans:
             logger.info(f"-- [LOCAL FAST-ANSWER (0 tokens)] '{question}' ==> '{local_ans}'")
             return local_ans
+
+        if not self.model:
+            return ""
 
         logger.info(f"-- ANSWERING QUESTION using AI: {question}")
 
