@@ -81,7 +81,8 @@ class TextHandler(BaseQuestionHandler):
 
                 # City / Location / Cidade / Localização
                 elif any(term in label_lower for term in ['city', 'location', 'address', 'cidade', 'localização', 'localizacao', 'município', 'municipio']):
-                    answer = personal_data.current_city
+                    # Use clean city name for typeahead search
+                    answer = "São José do Rio Preto"
                     do_actions = True
 
                 # State / Estado
@@ -105,11 +106,11 @@ class TextHandler(BaseQuestionHandler):
                     if any(term in label_lower for term in ['full', 'completo']):
                         answer = personal_data.full_name
                     elif any(term in label_lower for term in ['first', 'primeiro']):
-                        answer = personal_data.first_name
+                        answer = personal_data.first_name.strip()
                     elif any(term in label_lower for term in ['middle', 'do meio']):
-                        answer = personal_data.middle_name
+                        answer = personal_data.middle_name.strip()
                     elif any(term in label_lower for term in ['last', 'sobrenome', 'último', 'ultimo']):
-                        answer = personal_data.last_name
+                        answer = personal_data.last_name.strip()
                     elif any(term in label_lower for term in ['employer', 'empresa', 'atual']):
                         answer = questions_data.recent_employer
                     else:
@@ -151,20 +152,32 @@ class TextHandler(BaseQuestionHandler):
 
             # 5. Execute Action safely (React-compatible input typing)
             if answer:
+                answer_str = str(answer).strip()
                 try:
                     input_element.click()
                     time.sleep(0.1)
                     input_element.send_keys(Keys.CONTROL + "a")
                     input_element.send_keys(Keys.BACKSPACE)
                     time.sleep(0.1)
-                    input_element.send_keys(str(answer))
+                    input_element.send_keys(answer_str)
                 except Exception:
                     input_element.clear()
-                    input_element.send_keys(str(answer))
+                    input_element.send_keys(answer_str)
 
                 if do_actions:
-                    time.sleep(1.5)
-                    self.scraper.actions.send_keys(Keys.ARROW_DOWN).send_keys(Keys.ENTER).perform()
+                    time.sleep(1.0)
+                    # Try to click on the first typeahead autocomplete option
+                    try:
+                        suggestions = self.scraper.driver.find_elements(
+                            By.XPATH,
+                            "//div[contains(@class, 'basic-typeahead__selectable')] | //div[contains(@class, 'typeahead-suggestion')] | //li[contains(@class, 'basic-typeahead__selectable')] | //div[@role='option']"
+                        )
+                        if suggestions:
+                            self.scraper.interactor.human_click(suggestions[0])
+                        else:
+                            self.scraper.actions.send_keys(Keys.ARROW_DOWN).send_keys(Keys.ENTER).send_keys(Keys.TAB).perform()
+                    except Exception:
+                        self.scraper.actions.send_keys(Keys.ARROW_DOWN).send_keys(Keys.ENTER).send_keys(Keys.TAB).perform()
 
         return (label_text, input_element.get_attribute("value"), question_type)
 
