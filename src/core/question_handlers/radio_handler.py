@@ -142,7 +142,10 @@ class RadioHandler(BaseQuestionHandler):
         elif 'veteran' in label_lower or 'protected veteran' in label_lower:
             answer = personal_data.veteran_status
 
-        # 4. Work Models / Availability (PJ, CLT, Remote, Relocation, Immediate Start)
+        # 4. Work Models / Availability (PJ, CLT, Remote, Relocation, Immediate Start, Residence, Setup)
+        elif any(word in label_lower for word in ['live in brazil', 'reside no brasil', 'mora no brasil', 'reside in brazil', 'localizado no brasil', 'own computer', 'work setup', 'setup', 'computador próprio', 'computador proprio', 'equipamento']):
+            answer = "Sim" if any(w in label_lower for w in ['brasil', 'mora', 'reside', 'computador', 'equipamento']) else "Yes"
+
         elif any(word in label_lower for word in ['clt', 'pj', 'pessoa jurídica', 'pessoa juridica', 'remoto', 'remote', 'híbrido', 'hibrido', 'disponibilidade', 'início imediato', 'inicio imediato', 'full-time', 'tempo integral']):
             answer = "Sim" if any(w in label_lower for w in ['clt', 'pj', 'remoto', 'disponibilidade', 'início']) else "Yes"
 
@@ -155,9 +158,9 @@ class RadioHandler(BaseQuestionHandler):
         elif any(word in label_lower for word in ['nda', 'confidentiality', 'non compete', 'non-compete', 'sigilo']):
             answer = "Sim" if "sigilo" in label_lower else "Yes"
 
-        # 5. Skills & Experience Confirmation ("Você tem experiência com...", "Desenvolveu...", etc.)
-        elif any(word in label_lower for word in ['experiência', 'experiencia', 'experience', 'conhecimento', 'desenvolveu', 'atuou', 'trabalha com', 'have you', 'do you have', 'proficiência', 'proficiencia']):
-            answer = "Sim" if any(w in label_lower for w in ['experiência', 'experiencia', 'conhecimento', 'desenvolveu', 'atuou']) else "Yes"
+        # 5. Skills & Experience Confirmation ("Você tem experiência com...", "Desenvolveu...", "AI tools", "English", etc.)
+        elif any(word in label_lower for word in ['experiência', 'experiencia', 'experience', 'conhecimento', 'desenvolveu', 'atuou', 'trabalha com', 'have you', 'do you have', 'proficiência', 'proficiencia', 'ai tools', 'chatgpt', 'claude', 'copilot', 'english', 'inglês', 'ingles', 'pipelines', 'sql', 'python', 'analytics', 'resume in english', 'cv in english', 'currículo em inglês', 'curriculo em ingles']):
+            answer = "Sim" if any(w in label_lower for w in ['experiência', 'experiencia', 'conhecimento', 'desenvolveu', 'atuou', 'inglês', 'ingles']) else "Yes"
 
         selected = False
 
@@ -307,11 +310,14 @@ class RadioHandler(BaseQuestionHandler):
         # Re-check Selected Answer
         # ==========================================================
 
-        final_answer = "Unknown"
+        final_answer = answer if answer else "Unknown"
 
         for option in option_data:
             try:
-                if option["input"].is_selected():
+                inp_selected = option["input"].is_selected()
+                attr_checked = option["input"].get_attribute("checked") in ["true", True, "checked"]
+                label_checked = option["label"].get_attribute("aria-checked") == "true" or "checked" in (option["label"].get_attribute("class") or "").lower()
+                if inp_selected or attr_checked or label_checked:
                     final_answer = option["text"]
                     break
             except Exception:
