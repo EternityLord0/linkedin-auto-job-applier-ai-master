@@ -118,14 +118,14 @@ class BotEngine:
 
         # Build target search URLs for:
         # 1. Remote jobs across Brazil (f_WT=2, f_AL=true)
-        # 2. On-site/Hybrid jobs within 200km of SJRP (location=SJRP, distance=125, f_WT=1,3, f_AL=true)
+        # 2. Regional jobs within 200km of SJRP (location=SJRP, distance=125 miles, f_AL=true)
         search_urls = [
             (
                 f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=Brasil&f_WT=2&f_AL=true{date_param}",
                 "Remoto (Brasil todo)"
             ),
             (
-                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=125&f_WT=1%2C3&f_AL=true{date_param}",
+                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=125&f_AL=true{date_param}",
                 "Presencial/Híbrido (até 200km SJRP)"
             )
         ]

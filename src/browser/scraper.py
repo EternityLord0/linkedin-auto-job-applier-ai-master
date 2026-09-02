@@ -294,18 +294,34 @@ class LinkedInScraper:
             full_card_text = job_element.text
             lines = [l.strip() for l in full_card_text.split("\n") if l.strip()]
 
-            if len(lines) >= 2 and title in lines[0]:
-                company = lines[1]
+            # 1. Company Name (from subtitle)
+            try:
+                company_el = job_element.find_element(By.CLASS_NAME, 'artdeco-entity-lockup__subtitle')
+                company = company_el.text.strip()
+            except Exception:
+                if len(lines) >= 2 and title in lines[0]:
+                    company = lines[1]
 
+            # 2. Location & Work Style (from caption or metadata items)
             raw_details = ""
             try:
-                raw_details = job_element.find_element(By.CLASS_NAME, 'artdeco-entity-lockup__subtitle').text
+                caption_el = job_element.find_element(By.CLASS_NAME, 'artdeco-entity-lockup__caption')
+                raw_details = caption_el.text.strip()
             except Exception:
+                try:
+                    meta_items = job_element.find_elements(By.XPATH, ".//li[contains(@class, 'job-card-container__metadata-item')] | .//span[contains(@class, 'job-card-container__metadata-item')]")
+                    if meta_items:
+                        raw_details = " · ".join([m.text.strip() for m in meta_items if m.text.strip()])
+                except Exception:
+                    pass
+
+            if not raw_details:
                 if len(lines) > 2:
                     raw_details = lines[2]
                 else:
                     raw_details = full_card_text
 
+            # Parse work_style and work_location
             if '(' in raw_details and ')' in raw_details:
                 start = raw_details.rfind('(')
                 end = raw_details.rfind(')')
