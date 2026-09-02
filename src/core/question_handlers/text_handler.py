@@ -56,8 +56,8 @@ class TextHandler(BaseQuestionHandler):
                 elif any(term in label_lower for term in ['valor hora', 'valor/hora', 'taxa horária', 'taxa horaria', 'hourly rate', 'hourly', 'por hora']):
                     answer = "50"
 
-                # Salary / Pretensão Salarial / Remuneração
-                elif any(term in label_lower for term in ['salary', 'compensation', 'ctc', 'pay', 'salário', 'salario', 'remuneração', 'remuneracao', 'pretensão', 'pretensao']):
+                # Salary / Pretensão Salarial / Remuneração / Expectativa de Valor
+                elif any(term in label_lower for term in ['salary', 'compensation', 'ctc', 'pay', 'salário', 'salario', 'salarial', 'remuneração', 'remuneracao', 'pretensão', 'pretensao', 'expectativa', 'modelo clt', 'valor clt', 'quanto pretende']):
                     if any(term in label_lower for term in ['current', 'present', 'atual', 'último', 'ultimo']):
                         if any(term in label_lower for term in ['month', 'mês', 'mes', 'mensal']):
                             answer = str(round(questions_data.current_ctc / 12, 2))
@@ -69,8 +69,8 @@ class TextHandler(BaseQuestionHandler):
                         else:
                             answer = str(questions_data.desired_salary)
 
-                # Years of Experience / Quantos anos de experiência
-                elif any(term in label_lower for term in ['experience', 'years', 'experiência', 'experiencia', 'quantos anos', 'tempo de experiência', 'tempo de experiencia']):
+                # Years of Experience / Quanto tempo / Anos de experiência
+                elif any(term in label_lower for term in ['experience', 'years', 'experiência', 'experiencia', 'quantos anos', 'quanto tempo', 'tempo de experiência', 'tempo de experiencia', 'tempo atua', 'tempo você trabalha', 'tempo voce trabalha', 'tempo de atuação', 'tempo de atuacao']):
                     base_years = int(questions_data.years_of_experience)
                     extra_year = 1 if questions_data.additional_months_of_experience >= 6 else 0
                     answer = str(base_years + extra_year)
