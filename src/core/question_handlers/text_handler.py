@@ -167,27 +167,43 @@ class TextHandler(BaseQuestionHandler):
             if not answer or str(answer).strip() == "":
                 inp_type = input_element.get_attribute("type")
                 inp_mode = input_element.get_attribute("inputmode")
-                is_numeric = inp_type in ["number", "tel"] or inp_mode == "numeric" or any(term in label_lower for term in ['quant', 'how many', 'anos', 'tempo', 'número', 'numero', 'horas', 'hours'])
+                is_numeric = (
+                    inp_type in ["number", "tel"]
+                    or inp_mode == "numeric"
+                    or any(term in label_lower for term in [
+                        'quant', 'how many', 'anos', 'tempo', 'years', 'número', 'numero',
+                        'horas', 'hours', 'certificad', 'certificaç', 'score', 'nota', 'usou', 'usa'
+                    ])
+                )
 
                 if is_numeric:
                     answer = "4"
                 elif any(term in label_lower for term in ['salár', 'salar', 'pretens', 'valor', 'remuner']):
                     answer = "8000"
-                elif any(term in label_lower for term in ['sim', 'não', 'possui', 'experiência', 'conhecimento', 'desenvolveu', 'atuou']):
+                elif any(term in label_lower for term in ['sim', 'não', 'possui', 'conhecimento', 'desenvolveu', 'atuou']):
                     answer = "Sim"
                 elif question_type == "text":
                     answer = "Sim"
 
-            # 6. Execute Action safely (React-compatible input typing)
+            # 6. Execute Action safely (React-compatible input typing with zero concatenation)
             if answer:
                 answer_str = str(answer).strip()
                 try:
                     input_element.click()
-                    time.sleep(0.1)
+                    time.sleep(0.05)
                     input_element.send_keys(Keys.CONTROL + "a")
                     input_element.send_keys(Keys.BACKSPACE)
-                    time.sleep(0.1)
+                    time.sleep(0.05)
+                    # Clear value in DOM to avoid any concatenation with previous input
+                    self.scraper.driver.execute_script("arguments[0].value = '';", input_element)
+                    time.sleep(0.05)
                     input_element.send_keys(answer_str)
+                    # Dispatch input/change events for React form validation
+                    self.scraper.driver.execute_script(
+                        "arguments[0].dispatchEvent(new Event('input', { bubbles: true })); "
+                        "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));",
+                        input_element
+                    )
                 except Exception:
                     try:
                         input_element.clear()
