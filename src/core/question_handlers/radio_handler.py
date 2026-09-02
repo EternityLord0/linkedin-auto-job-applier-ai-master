@@ -112,63 +112,52 @@ class RadioHandler(BaseQuestionHandler):
             return (label_text, prev_answer, "radio")
 
         # ==========================================================
-        # Deterministic Rules
+        # Deterministic Rules (PT & EN)
         # ==========================================================
 
-        if 'citizenship' in label_lower or 'employment eligibility' in label_lower:
+        # 1. Negative Restrictions (PCD, Visas, Relatives, Prior Employment)
+        if any(term in label_lower for term in ['disability', 'handicapped', 'deficiência', 'deficiencia', 'pcd']):
+            answer = personal_data.disability_status
+
+        elif any(term in label_lower for term in ['sponsorship', 'visa', 'visto', 'patrocínio', 'patrocinio']):
+            answer = questions_data.require_visa
+
+        elif any(term in label_lower for term in ['relationship', 'relatives', 'parentes', 'family members', 'parente']):
+            answer = "Não" if "parent" in label_lower or "defic" in label_lower else "No"
+
+        elif any(term in label_lower for term in ['previously applied', 'applied before', 'já trabalhou', 'ja trabalhou', 'worked at']):
+            answer = "Não" if "já" in label_lower or "trabalhou" in label_lower else "No"
+
+        # 2. Driver License / CNH
+        elif any(term in label_lower for term in ['cnh', 'habilitação', 'habilitacao', 'carteira de motorista', 'driver license']):
+            answer = "Sim"
+
+        # 3. Work Authorization & Citizenship
+        elif any(word in label_lower for word in ['authorized', 'legally authorized', 'eligible to work', 'work authorization', 'autorizado a trabalhar']):
+            answer = "Sim" if "autorizado" in label_lower or "trabalhar" in label_lower else "Yes"
+
+        elif 'citizenship' in label_lower or 'employment eligibility' in label_lower:
             answer = questions_data.us_citizenship
 
         elif 'veteran' in label_lower or 'protected veteran' in label_lower:
             answer = personal_data.veteran_status
 
-        elif 'disability' in label_lower or 'handicapped' in label_lower:
-            answer = personal_data.disability_status
+        # 4. Work Models / Availability (PJ, CLT, Remote, Relocation, Immediate Start)
+        elif any(word in label_lower for word in ['clt', 'pj', 'pessoa jurídica', 'pessoa juridica', 'remoto', 'remote', 'híbrido', 'hibrido', 'disponibilidade', 'início imediato', 'inicio imediato', 'full-time', 'tempo integral']):
+            answer = "Sim" if any(w in label_lower for w in ['clt', 'pj', 'remoto', 'disponibilidade', 'início']) else "Yes"
 
-        elif 'sponsorship' in label_lower or 'visa' in label_lower:
-            answer = questions_data.require_visa
-
-        elif 'relationship' in label_lower:
-            answer = "No"
-
-        elif 'previously applied' in label_lower or 'applied before' in label_lower:
-            answer = "No"
-
-        elif any(word in label_lower for word in [
-            'authorized',
-            'legally authorized',
-            'eligible to work',
-            'work authorization'
-        ]):
-            answer = "Yes"
-
-        elif any(word in label_lower for word in [
-            'relocate',
-            'relocation'
-        ]):
+        elif any(word in label_lower for word in ['relocate', 'relocation', 'mudança', 'mudanca']):
             answer = getattr(questions_data, "open_to_relocate", "Yes")
 
-        elif any(word in label_lower for word in [
-            'remote',
-            'hybrid',
-            'onsite',
-            'on-site',
-            'work model'
-        ]):
-            answer = getattr(questions_data, "work_preference", "")
+        elif any(word in label_lower for word in ['background check', 'drug test', 'antecedentes']):
+            answer = "Sim" if "antecedentes" in label_lower else "Yes"
 
-        elif any(word in label_lower for word in [
-            'background check',
-            'drug test'
-        ]):
-            answer = "Yes"
+        elif any(word in label_lower for word in ['nda', 'confidentiality', 'non compete', 'non-compete', 'sigilo']):
+            answer = "Sim" if "sigilo" in label_lower else "Yes"
 
-        elif any(word in label_lower for word in [
-            'nda',
-            'confidentiality',
-            'non compete',
-            'non-compete'
-        ]):
-            answer = "Yes"
+        # 5. Skills & Experience Confirmation ("Você tem experiência com...", "Desenvolveu...", etc.)
+        elif any(word in label_lower for word in ['experiência', 'experiencia', 'experience', 'conhecimento', 'desenvolveu', 'atuou', 'trabalha com', 'have you', 'do you have', 'proficiência', 'proficiencia']):
+            answer = "Sim" if any(w in label_lower for w in ['experiência', 'experiencia', 'conhecimento', 'desenvolveu', 'atuou']) else "Yes"
 
         selected = False
 
@@ -255,36 +244,49 @@ class RadioHandler(BaseQuestionHandler):
                 logger.error(f"AI radio answering failed: {e}")
 
         # ==========================================================
-        # Safe Fallback
+        # Smart Heuristic Fallback (Affirmative vs Negative)
         # ==========================================================
 
         if not selected:
-            logger.warning(
-                f"No confident answer found for radio question: '{label_text}'"
-            )
+            # If question is about skills, experience, tools, availability -> Affirmative
+            is_skill_or_avail = any(term in label_lower for term in [
+                'experiência', 'experiencia', 'experience', 'skill', 'conhecimento',
+                'desenvolveu', 'trabalhou', 'trabalha', 'api', 'python', 'sql', 'react',
+                'aws', 'databricks', 'cloud', 'clt', 'pj', 'remoto', 'disponibilidade',
+                'inglês', 'ingles', 'english', 'cnh', 'graduação', 'graduacao'
+            ])
 
-            safe_options = [
-                "No",
-                "Decline",
-                "Prefer not to say",
-                "Prefer not to answer",
-                "I do not wish to answer"
-            ]
+            if is_skill_or_avail:
+                affirmative_options = ["sim", "yes", "tenho", "possuo", "concordo", "agree", "true", "i do", "i have", "fluente", "avançado", "nativo"]
+                for aff in affirmative_options:
+                    for option in option_data:
+                        if aff in option["text"].lower():
+                            if self.safe_click_label(option["label"]):
+                                answer = option["text"]
+                                selected = True
+                                logger.info(f"Smart affirmative heuristic selected: '{answer}' for question: '{label_text}'")
+                                break
+                    if selected:
+                        break
 
-            for safe in safe_options:
-                normalized_safe = self.normalize_text(safe)
-
-                for option in option_data:
-                    normalized_option = self.normalize_text(option["text"])
-
-                    if normalized_safe in normalized_option:
-                        if self.safe_click_label(option["label"]):
-                            answer = option["text"]
-                            selected = True
+            # If question is about restrictions (disability, sponsorship, relatives) -> Negative
+            if not selected:
+                is_restriction = any(term in label_lower for term in [
+                    'deficiência', 'deficiencia', 'pcd', 'disability', 'sponsorship',
+                    'visto', 'visa', 'relatives', 'parentes', 'processo'
+                ])
+                if is_restriction:
+                    negative_options = ["não", "nao", "no", "não se aplica", "nao se aplica", "not applicable", "decline", "prefer not to say"]
+                    for neg in negative_options:
+                        for option in option_data:
+                            if neg in option["text"].lower():
+                                if self.safe_click_label(option["label"]):
+                                    answer = option["text"]
+                                    selected = True
+                                    logger.info(f"Smart negative heuristic selected: '{answer}' for question: '{label_text}'")
+                                    break
+                        if selected:
                             break
-
-                if selected:
-                    break
 
         # ==========================================================
         # Absolute Final Fallback

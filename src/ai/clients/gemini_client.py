@@ -158,155 +158,16 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
         """Local pattern matcher to answer common form questions without API calls (0 tokens)."""
         q_lower = question.lower()
 
-        # 1. Driver License / CNH
-        if any(term in q_lower for term in ['cnh', 'carteira nacional de habilitação', 'carteira de motorista', 'driver license']):
-            if options:
-                for opt in options:
-                    if any(yes_term in opt.lower() for yes_term in ['sim', 'yes', 'cnh b', 'categoria b']):
-                        return opt
-            return "Sim"
-
-        # 2. Availability / Immediate Start / Travel
-        if any(term in q_lower for term in ['início imediato', 'inicio imediato', 'disponibilidade para início', 'disponibilidade de início']):
-            if options:
-                for opt in options:
-                    if 'sim' in opt.lower() or 'yes' in opt.lower() or 'imediato' in opt.lower():
-                        return opt
-            return "Sim"
-
-        if any(term in q_lower for term in ['viagem', 'viagens', 'deslocar', 'deslocamento', 'willingness to travel', 'viajar', 'disponibilidade para viajar']):
-            if options:
-                for opt in options:
-                    if 'sim' in opt.lower() or 'yes' in opt.lower():
-                        return opt
-            return "Sim"
-
-        # 3. Salary / Remuneração / Pretensão / Valor Hora (Verificado ANTES de PJ)
-        if any(term in q_lower for term in ['valor hora', 'valor/hora', 'taxa horária', 'taxa horaria', 'hourly rate', 'hourly', 'por hora', 'hora']):
-            if any(term in q_lower for term in ['pretensão', 'pretensao', 'quanto', 'qual', 'rate', 'valor', 'expectativa']):
-                return "50"
-
-        if any(term in q_lower for term in ['pretensão salarial', 'pretensao salarial', 'salário desejado', 'salario desejado', 'salary expectation', 'desired salary', 'pretensão', 'pretensao', 'expectativa salarial', 'remuneração desejada']):
-            return str(questions_data.desired_salary)
-
-        # 4. Freelancer / PJ / CLT / Contract (apenas perguntas de regime/aceite)
-        if any(term in q_lower for term in ['freelancer', 'autônomo', 'autonomo', 'pessoa jurídica', 'pj', 'clt ou pj']):
-            if options:
-                for opt in options:
-                    if any(pj_term in opt.lower() for pj_term in ['pj', 'clt ou pj', 'ambos', 'tanto faz', 'sim', 'yes']):
-                        return opt
-            return "Sim"
-
-        # 5. Visa / Work Authorization
-        if any(term in q_lower for term in ['visa', 'patrocínio', 'patrocinio', 'sponsorship', 'require sponsorship', 'work visa']):
-            if options:
-                for opt in options:
-                    if 'não' in opt.lower() or 'no' in opt.lower():
-                        return opt
-            return "Não"
-
-        # 6. English / Idiomas
-        if any(term in q_lower for term in ['inglês', 'ingles', 'english', 'idioma inglês', 'idioma ingles', 'english level']):
-            if options:
-                for opt in options:
-                    if any(eng_term in opt.lower() for eng_term in ['fluente', 'fluent', 'avançado', 'avancado', 'advanced', 'c1', 'c2', 'profissional']):
-                        return opt
-            return "Fluente"
-
-        # 7. Education / Degree
+        # =========================================================================
+        # 1. Numeric Experience & Duration (PRIORITY OVER GENERIC SKILL CONFIRMATION)
+        # =========================================================================
         if any(term in q_lower for term in [
-            'engenheiro', 'engenharia', 'superior completo', 'graduação', 'graduacao', 'bacharelado',
-            'ensino superior', 'nível superior', 'pos-graduação', 'pós-graduação', 'mba'
+            'quantos anos', 'anos de experiência', 'anos de experiencia', 'tempo de experiência',
+            'tempo de experiencia', 'quanto tempo', 'tempo atua', 'tempo você trabalha',
+            'tempo voce trabalha', 'tempo de atuação', 'tempo de atuacao', 'how many years',
+            'years of experience', 'years do you have', 'how long have you', 'anos você possui',
+            'anos você tem', 'anos voce tem', 'anos tem'
         ]):
-            if options:
-                for opt in options:
-                    if 'sim' in opt.lower() or 'yes' in opt.lower() or 'completo' in opt.lower():
-                        return opt
-            return "Sim"
-
-        # 8. Remote Work / Trabalho Remoto
-        if any(term in q_lower for term in ['remoto', 'remote', 'trabalho remoto', 'home office', 'teletrabalho']):
-            if options:
-                for opt in options:
-                    if 'sim' in opt.lower() or 'yes' in opt.lower() or 'remoto' in opt.lower():
-                        return opt
-            return "Sim"
-
-        # 9. Disability / PCD / Tipo de deficiência (PT & EN - ZERO ALUCINAÇÃO)
-        if any(term in q_lower for term in ['pessoa com deficiência', 'person with disabilities', 'você é pcd', 'voce e pcd', 'é pcd', 'e pcd', 'deficiência?', 'deficiencia?', 'disability?']):
-            if options:
-                for opt in options:
-                    if any(no_term in opt.strip().lower() for no_term in ['não', 'nao', 'no', 'não sou pcd', 'não sou pessoa com deficiência', 'i do not have a disability']):
-                        return opt
-            return "No" if "person" in q_lower or "disabilit" in q_lower else "Não"
-
-        if any(term in q_lower for term in ['tipo de deficiência', 'tipo de deficiencia', 'qual o tipo de deficiência', 'qual sua deficiência', 'qual sua deficiencia', 'caso seja, conte-nos qual', 'type of disability', 'what type of disability']):
-            if options:
-                for opt in options:
-                    if any(none_term in opt.lower() for none_term in [
-                        'não se aplica', 'nao se aplica', 'not applicable', 'n/a', 'none', 'nenhuma', 'nenhum',
-                        'não sou pcd', 'nao sou pcd', 'i do not have a disability', 'não possuo', 'prefiro não responder', 'prefer not to answer', 'não tenho'
-                    ]):
-                        return opt
-            return "Not applicable" if "disability" in q_lower else "Não se aplica"
-
-        # 10. Accessibility / Acessibilidade (PT & EN)
-        if any(term in q_lower for term in ['acessibilidade', 'accessibility', 'precisa de algum tipo de acessibilidade', 'require any type of accessibility']):
-            if options:
-                for opt in options:
-                    if any(no_need in opt.lower() for no_need in ['não necessito', 'nao necessito', 'não preciso', 'do not require', 'nenhuma', 'não', 'nao', 'no']):
-                        return opt
-            return "I do not require any accessibility" if "accessibility" in q_lower else "Não necessito de nenhuma acessibilidade"
-
-        # 11. LGBTQIAP+ / Orientação Sexual (PT & EN)
-        if any(term in q_lower for term in ['lgbt', 'lgbtq', 'lgbtqiap', 'orientação sexual', 'orientacao sexual', 'sexual orientation']):
-            if options:
-                for opt in options:
-                    if any(opt_term in opt.lower() for opt_term in ['não', 'nao', 'no', 'heterossexual', 'heterosexual', 'hetero', 'cis', 'prefiro não responder', 'prefer not to answer']):
-                        return opt
-            return "No" if "community" in q_lower or "lgbtq" in q_lower else "Não"
-
-        # 12. Gender / Identidade de Gênero (PT & EN)
-        if any(term in q_lower for term in ['identidade de gênero', 'identidade de genero', 'gender identity', 'gênero?', 'genero?', 'gender?', 'sexo?']):
-            if options:
-                for opt in options:
-                    if any(male_term in opt.lower() for male_term in ['cisgender man', 'homem cisgênero', 'homem cis', 'homem', 'man', 'masculino', 'male']):
-                        return opt
-            return "Cisgender Man" if "gender" in q_lower else "Homem Cisgênero"
-
-        # 13. Race / Cor / Raça (PT & EN)
-        if any(term in q_lower for term in ['cor/raça', 'cor ou raça', 'autodeclara sua cor', 'color/race', 'etnia', 'ethnicity', 'raça', 'raca', 'race']):
-            if options:
-                for opt in options:
-                    if any(white_term in opt.lower() for white_term in ['white', 'branca', 'branco']):
-                        return opt
-            return "White" if "race" in q_lower or "color" in q_lower else "Branca"
-
-        # 14. Relatives / Parentes na empresa (CI&T, etc.)
-        if any(term in q_lower for term in ['relatives', 'parentes', 'family members', 'close friends who currently work', 'trabalham na empresa', 'trabalham na ci&t']):
-            if options:
-                for opt in options:
-                    if any(no_rel in opt.lower() for no_rel in ['não', 'nao', 'no']):
-                        return opt
-            return "No"
-
-        if any(term in q_lower for term in ['share the name(s) of these individuals', 'nome desses parentes', 'nome do funcionário que indicou']):
-            return "N/A"
-
-        # 15. Current Company / Empresa Atual
-        if any(term in q_lower for term in ['name of the company where you work', 'empresa em que você trabalha', 'empresa atual', 'current company', 'confirme o nome da empresa']):
-            return "The Duracell Company"
-
-        # 16. On-site Campinas / Trabalho Presencial Específico
-        if any(term in q_lower for term in ['campinas office', 'presencial na cidade de campinas', 'on-site work at the campinas']):
-            if options:
-                for opt in options:
-                    if any(no_opt in opt.lower() for no_opt in ['não', 'nao', 'no', 'não tenho disponibilidade', 'do not have availability', 'remoto', 'remote']):
-                        return opt
-            return "No"
-
-        # 17. Numeric Experience Questions ("Quantos anos de experiência...", "Quanto tempo atua...", etc.)
-        if any(term in q_lower for term in ['quantos anos', 'anos de experiência', 'anos de experiencia', 'tempo de experiência', 'tempo de experiencia', 'quanto tempo', 'tempo atua', 'tempo você trabalha', 'tempo voce trabalha', 'tempo de atuação', 'tempo de atuacao', 'how many years', 'years of experience', 'years do you have', 'how long have you']):
             base_years = questions_data.years_of_experience
             extra_year = 1 if questions_data.additional_months_of_experience >= 6 else 0
             exp_str = str(base_years + extra_year)
@@ -318,8 +179,15 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
                         return opt
                 return options[0]
 
-        # 18. Salary / Pretensão Salarial / Expectativa de Valor
-        if any(term in q_lower for term in ['expectativa salarial', 'expectativa de valor', 'pretensão salarial', 'pretensao salarial', 'remuneração', 'remuneracao', 'salary', 'salário', 'salario', 'salarial', 'modelo clt', 'valor clt', 'quanto pretende']):
+        # =========================================================================
+        # 2. Salary / Expectativa Salarial / Pretensão / Valor PJ & CLT
+        # =========================================================================
+        if any(term in q_lower for term in [
+            'expectativa salarial', 'expectativa de valor', 'pretensão salarial', 'pretensao salarial',
+            'remuneração', 'remuneracao', 'salary', 'salário', 'salario', 'salarial', 'modelo clt',
+            'valor clt', 'quanto pretende', 'pretensão para contratação', 'pretensao para contratacao',
+            'expected annual salary', 'desired salary', 'hourly rate', 'valor hora', 'valor/hora'
+        ]):
             if any(term in q_lower for term in ['valor hora', 'valor/hora', 'por hora', 'taxa horária', 'hourly']):
                 return "50"
             if options:
@@ -329,13 +197,123 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
                 return options[0]
             return "8000"
 
-        # 19. General Skill / Experience confirmation ("Você tem experiência com X?")
-        if any(term in q_lower for term in ['você tem experiência', 'voce tem experiencia', 'possui experiência', 'possui experiencia', 'tem conhecimento', 'do you have experience', 'have you worked with']):
+        # =========================================================================
+        # 3. Negative Restrictions (PCD, Visas, Relatives, Prior Employment)
+        # =========================================================================
+        # Relatives / Parentes
+        if any(term in q_lower for term in ['parente', 'parentes', 'family member', 'family members', 'relatives', 'amigo próximo', 'amigo proximo', 'close friend']):
             if options:
                 for opt in options:
-                    if any(yes_term in opt.lower() for yes_term in ['sim', 'yes', 'tenho', 'possuo', 'concordo']):
+                    if any(no_term in opt.lower() for no_term in ['não', 'nao', 'no', 'none', 'nenhum']):
+                        return opt
+            return "No" if "relat" in q_lower or "friend" in q_lower else "Não"
+
+        # Prior employment
+        if any(term in q_lower for term in ['já trabalhou', 'ja trabalhou', 'trabalhou anteriormente', 'previously applied', 'applied before', 'worked at this company']):
+            if options:
+                for opt in options:
+                    if any(no_term in opt.lower() for no_term in ['não', 'nao', 'no']):
+                        return opt
+            return "No" if "previously" in q_lower or "worked" in q_lower else "Não"
+
+        # Disability / PCD
+        if any(term in q_lower for term in ['deficiência', 'deficiencia', 'pcd', 'disability', 'handicapped']):
+            if any(term in q_lower for term in ['qual o tipo', 'qual sua deficiência', 'qual sua deficiencia', 'tipo de deficiência', 'type of disability']):
+                if options:
+                    for opt in options:
+                        if any(n in opt.lower() for n in ['não se aplica', 'nao se aplica', 'not applicable', 'n/a', 'none', 'nenhuma', 'não sou pcd']):
+                            return opt
+                return "Not applicable" if "type" in q_lower else "Não se aplica"
+            if options:
+                for opt in options:
+                    if any(no_term in opt.lower() for no_term in ['não', 'nao', 'no', 'não sou pcd', 'i do not have a disability']):
+                        return opt
+            return "No" if "disabilit" in q_lower else "Não"
+
+        # Visa / Sponsorship
+        if any(term in q_lower for term in ['visa', 'patrocínio', 'patrocinio', 'sponsorship', 'require sponsorship', 'work visa']):
+            if options:
+                for opt in options:
+                    if 'não' in opt.lower() or 'no' in opt.lower():
+                        return opt
+            return "No" if "sponsor" in q_lower or "visa" in q_lower else "Não"
+
+        # =========================================================================
+        # 4. Language Proficiency (English, German, Spanish, etc.)
+        # =========================================================================
+        if any(term in q_lower for term in ['inglês', 'ingles', 'english', 'idioma', 'language', 'alemão', 'alemao', 'german', 'espanhol', 'spanish']):
+            if options:
+                for prof in ['nativo ou bilíngue', 'native or bilingual', 'fluente', 'fluent', 'avançado', 'advanced', 'professional', 'full professional', 'b2', 'c1', 'c2', 'sim', 'yes']:
+                    for opt in options:
+                        if prof in opt.lower():
+                            return opt
+                return options[0]
+            return "Fluente" if "inglês" in q_lower or "ingles" in q_lower else "Native or bilingual"
+
+        # =========================================================================
+        # 5. Driver License / CNH
+        # =========================================================================
+        if any(term in q_lower for term in ['cnh', 'carteira nacional de habilitação', 'carteira de motorista', 'driver license', 'habilitação', 'habilitacao']):
+            if options:
+                for opt in options:
+                    if any(yes_term in opt.lower() for yes_term in ['sim', 'yes', 'cnh b', 'categoria b']):
                         return opt
             return "Sim"
+
+        # =========================================================================
+        # 6. Affirmative Skill, Tool, API, Certification & Availability Confirmations
+        # =========================================================================
+        if any(term in q_lower for term in [
+            'desenvolveu', 'consegue desenvolver', 'possui experiência', 'possui experiencia',
+            'tem experiência', 'tem experiencia', 'possui interesse', 'tem interesse',
+            'possui conhecimento', 'tem conhecimento', 'certificação', 'certificacao',
+            'certification', 'certified', 'atuar como clt', 'atuar como pj', 'able to work',
+            'work as pj', 'work as clt', 'remoto', 'remote', 'início imediato', 'inicio imediato',
+            'trabalha com', 'trabalhou com', 'worked with', 'have you worked', 'do you have experience',
+            'are you able', 'willing to', 'disponibilidade'
+        ]):
+            if options:
+                for opt in options:
+                    if any(yes_term in opt.lower() for yes_term in ['sim', 'yes', 'tenho', 'possuo', 'concordo', 'agree', 'true', 'i do', 'i have']):
+                        return opt
+            return "Yes" if any(w in q_lower for w in ['have', 'do you', 'are you', 'able', 'remote']) else "Sim"
+
+        # =========================================================================
+        # 7. Education / Degree
+        # =========================================================================
+        if any(term in q_lower for term in ['engenheiro', 'engenharia', 'superior completo', 'graduação', 'graduacao', 'bacharelado', 'ensino superior', 'pos-graduação', 'pós-graduação', 'mba']):
+            if options:
+                for opt in options:
+                    if 'sim' in opt.lower() or 'yes' in opt.lower() or 'completo' in opt.lower():
+                        return opt
+            return "Sim"
+
+        # =========================================================================
+        # 8. Demographics & Accessibility
+        # =========================================================================
+        if any(term in q_lower for term in ['acessibilidade', 'accessibility']):
+            if options:
+                for opt in options:
+                    if any(no_need in opt.lower() for no_need in ['não necessito', 'nao necessito', 'não preciso', 'do not require', 'nenhuma', 'não', 'no']):
+                        return opt
+            return "Não necessito de nenhuma acessibilidade"
+
+        if any(term in q_lower for term in ['identidade de gênero', 'identidade de genero', 'gender identity', 'gênero?', 'genero?', 'gender?', 'sexo?']):
+            if options:
+                for opt in options:
+                    if any(m in opt.lower() for m in ['cisgender man', 'homem cisgênero', 'homem cis', 'homem', 'man', 'masculino', 'male']):
+                        return opt
+            return "Homem Cisgênero"
+
+        if any(term in q_lower for term in ['cor/raça', 'cor ou raça', 'autodeclara sua cor', 'color/race', 'etnia', 'ethnicity', 'raça', 'raca', 'race']):
+            if options:
+                for opt in options:
+                    if any(w in opt.lower() for w in ['white', 'branca', 'branco']):
+                        return opt
+            return "Branca"
+
+        if any(term in q_lower for term in ['name of the company where you work', 'empresa em que você trabalha', 'empresa atual', 'current company']):
+            return "The Duracell Company"
 
         return None
 

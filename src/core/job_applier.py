@@ -53,20 +53,31 @@ class JobApplier:
             target_resume = resume_path if (resume_path and os.path.exists(resume_path)) else questions_data.default_resume_path
             while next_button:
                 next_counter += 1
-                if next_counter > 10:
-                    logger.error("Stuck in a loop of next buttons. Aborting application.")
-                    if settings_data.pause_at_failed_question:
-                        self.scraper.interactor.save_screenshot(job_id,
-                                                                "Needed manual intervention for failed question")
-                        pyautogui.alert(
-                            "Couldn't answer one or more questions_data.\nPlease click \"Continue\" once done.\nDO NOT CLICK Back, Next or Review button in LinkedIn.\n\n\n\n\nYou can turn off \"Pause at failed question\" setting in config.py",
-                            "Help Needed", "Continue")
-                        next_counter = 1
-                        continue
-                    if questions_list: logger.error(f"Stuck for one or some of the following questions_data...: {questions_list}")
+
+                # If stuck repeating the same step, attempt active auto-recovery on error fields
+                if next_counter > 3:
+                    try:
+                        error_feedbacks = modal.find_elements(By.XPATH, ".//*[contains(@class, 'artdeco-inline-feedback--error') or contains(@class, 'error') or @aria-invalid='true']")
+                        if error_feedbacks:
+                            logger.warning(f"Detected {len(error_feedbacks)} form validation errors. Applying auto-recovery...")
+                            # Re-run all handlers with force to fix the invalid fields
+                            for handler in self.handlers:
+                                for q_el in self._get_question_elements(modal):
+                                    if handler.can_handle(q_el):
+                                        try:
+                                            handler.handle(q_el, job_description)
+                                        except Exception:
+                                            pass
+                    except Exception as e:
+                        logger.debug(f"Error recovery attempt: {e}")
+
+                if next_counter > 7:
+                    logger.error("Form could not progress past current page after 7 attempts. Safely skipping this application.")
+                    if questions_list:
+                        logger.error(f"Questions on stuck page: {questions_list}")
                     self.scraper.interactor.save_screenshot(job_id, "Failed at questions")
                     errored = "stuck"
-                    raise Exception("Stuck in a loop of next buttons. Aborting application.")
+                    return False
 
                 # 1. Answer questions on the current page
                 new_questions = self.answer_questions(modal, job_description)

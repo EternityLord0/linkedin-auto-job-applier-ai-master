@@ -163,11 +163,46 @@ class SelectHandler(BaseQuestionHandler):
                     except Exception as e:
                         logger.error(f"AI dropdown answering failed: {e}")
 
-                # Random Fallback if completely unknown
+                # Smart Heuristic Fallback (No Random Choices)
                 if not found_option and len(valid_options) > 0:
-                    chosen = random.choice(valid_options)
-                    logger.warning(f"Failed to find match for dropdown '{label_text}'. Selecting from valid options: {chosen}")
-                    select_obj.select_by_visible_text(chosen)
-                    answer = select_obj.first_selected_option.text
+                    # Check if language proficiency
+                    if any(term in label_lower for term in ['proficiency', 'proficiência', 'proficiencia', 'inglês', 'ingles', 'english', 'idioma', 'language', 'espanhol', 'spanish']):
+                        for prof in ["nativo ou bilíngue", "native or bilingual", "fluente", "fluent", "avançado", "advanced", "professional", "full professional", "b2", "c1", "c2"]:
+                            for opt in valid_options:
+                                if prof in opt.lower():
+                                    select_obj.select_by_visible_text(opt)
+                                    answer = opt
+                                    found_option = True
+                                    break
+                            if found_option: break
+
+                    # Check if restriction (PCD, Visa, Relatives)
+                    if not found_option and any(term in label_lower for term in ['deficiência', 'deficiencia', 'pcd', 'disability', 'sponsorship', 'visto', 'visa', 'relatives', 'parentes']):
+                        for neg in ["não", "nao", "no", "não se aplica", "nao se aplica", "not applicable", "none", "nenhuma", "decline", "prefer not to answer"]:
+                            for opt in valid_options:
+                                if neg in opt.lower():
+                                    select_obj.select_by_visible_text(opt)
+                                    answer = opt
+                                    found_option = True
+                                    break
+                            if found_option: break
+
+                    # Check if skill, tool, availability or job interest -> Affirmative
+                    if not found_option:
+                        for aff in ["sim", "yes", "tenho", "possuo", "concordo", "agree", "remoto", "remote", "full-time", "clt", "pj", "4", "3", "5", "8000"]:
+                            for opt in valid_options:
+                                if aff in opt.lower():
+                                    select_obj.select_by_visible_text(opt)
+                                    answer = opt
+                                    found_option = True
+                                    break
+                            if found_option: break
+
+                    # Absolute fallback: first non-placeholder valid option
+                    if not found_option:
+                        chosen = valid_options[0]
+                        logger.warning(f"Selecting best fallback option for dropdown '{label_text}': {chosen}")
+                        select_obj.select_by_visible_text(chosen)
+                        answer = select_obj.first_selected_option.text
 
         return (label_text, select_obj.first_selected_option.text, "select")
