@@ -133,6 +133,19 @@ class TextHandler(BaseQuestionHandler):
                 elif any(term in label_lower for term in ['website', 'blog', 'portfolio', 'portfólio', 'link', 'site']):
                     answer = questions_data.website
 
+                # Certifications / Certificados / Certificações
+                elif any(term in label_lower for term in ['certificados', 'certificado', 'certificações', 'certificacoes', 'certificação', 'certificacao', 'certifications', 'certification']):
+                    answer = "2"
+
+                # Generic Count / Quantidade / Quantos / How many
+                elif any(term in label_lower for term in ['quantos', 'quantas', 'how many', 'qual a quantidade', 'número de', 'numero de', 'quantidade de']):
+                    if any(term in label_lower for term in ['projeto', 'projetos', 'projects']):
+                        answer = "10"
+                    elif any(term in label_lower for term in ['pessoa', 'pessoas', 'lider', 'time', 'equipe', 'team']):
+                        answer = "5"
+                    else:
+                        answer = str(int(questions_data.years_of_experience))
+
                 # Scales / Avaliações
                 elif any(term in label_lower for term in ['scale of 1–10', 'scale of 1-10', '1 a 10', '1-10']):
                     answer = str(questions_data.confidence_level)
@@ -150,7 +163,22 @@ class TextHandler(BaseQuestionHandler):
             if answer == "" and self.ai and self.ai.is_active:
                 answer = self.ai.get_answer(label_text, question_type, job_description)
 
-            # 5. Execute Action safely (React-compatible input typing)
+            # 5. Foolproof Fallback: Never Leave Input Empty
+            if not answer or str(answer).strip() == "":
+                inp_type = input_element.get_attribute("type")
+                inp_mode = input_element.get_attribute("inputmode")
+                is_numeric = inp_type in ["number", "tel"] or inp_mode == "numeric" or any(term in label_lower for term in ['quant', 'how many', 'anos', 'tempo', 'número', 'numero', 'horas', 'hours'])
+
+                if is_numeric:
+                    answer = "4"
+                elif any(term in label_lower for term in ['salár', 'salar', 'pretens', 'valor', 'remuner']):
+                    answer = "8000"
+                elif any(term in label_lower for term in ['sim', 'não', 'possui', 'experiência', 'conhecimento', 'desenvolveu', 'atuou']):
+                    answer = "Sim"
+                elif question_type == "text":
+                    answer = "Sim"
+
+            # 6. Execute Action safely (React-compatible input typing)
             if answer:
                 answer_str = str(answer).strip()
                 try:
@@ -161,8 +189,11 @@ class TextHandler(BaseQuestionHandler):
                     time.sleep(0.1)
                     input_element.send_keys(answer_str)
                 except Exception:
-                    input_element.clear()
-                    input_element.send_keys(answer_str)
+                    try:
+                        input_element.clear()
+                        input_element.send_keys(answer_str)
+                    except Exception:
+                        pass
 
                 if do_actions:
                     time.sleep(1.0)

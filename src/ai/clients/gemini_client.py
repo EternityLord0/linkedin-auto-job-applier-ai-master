@@ -159,14 +159,23 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
         q_lower = question.lower()
 
         # =========================================================================
-        # 1. Numeric Experience & Duration (PRIORITY OVER GENERIC SKILL CONFIRMATION)
+        # 1. Numeric Experience, Duration, Certifications & Counts
         # =========================================================================
+        if any(term in q_lower for term in ['certificados', 'certificado', 'certificações', 'certificacoes', 'certificação', 'certificacao', 'certifications', 'certification']):
+            if options:
+                for opt in options:
+                    if any(num in opt for num in ['2', '1', '3', 'Sim', 'Yes']):
+                        return opt
+                return options[0]
+            return "2"
+
         if any(term in q_lower for term in [
             'quantos anos', 'anos de experiência', 'anos de experiencia', 'tempo de experiência',
             'tempo de experiencia', 'quanto tempo', 'tempo atua', 'tempo você trabalha',
             'tempo voce trabalha', 'tempo de atuação', 'tempo de atuacao', 'how many years',
             'years of experience', 'years do you have', 'how long have you', 'anos você possui',
-            'anos você tem', 'anos voce tem', 'anos tem'
+            'anos você tem', 'anos voce tem', 'anos tem', 'quantos', 'quantas', 'how many',
+            'qual a quantidade', 'número de', 'numero de', 'quantidade de'
         ]):
             base_years = questions_data.years_of_experience
             extra_year = 1 if questions_data.additional_months_of_experience >= 6 else 0

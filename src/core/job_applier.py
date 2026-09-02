@@ -83,6 +83,20 @@ class JobApplier:
                 new_questions = self.answer_questions(modal, job_description)
                 questions_list.update(new_questions)
 
+                # Safety sweep: ensure no visible input field is left blank on the current step
+                try:
+                    empty_inputs = modal.find_elements(By.XPATH, ".//input[(@type='text' or @type='number' or not(@type)) and (@value='' or not(@value))]")
+                    for empty_inp in empty_inputs:
+                        if empty_inp.is_displayed():
+                            val = "4" if empty_inp.get_attribute("type") == "number" else "Sim"
+                            try:
+                                empty_inp.click()
+                                empty_inp.send_keys(val)
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+
                 # 2. Upload resume if prompted
                 if settings_data.uploadNewResume and not uploaded:
                     uploaded, _ = self._upload_resume(modal, target_resume)
