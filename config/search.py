@@ -10,17 +10,24 @@ from config.schema.search_model import SearchModel
 # ==========================================
 search_data = SearchModel(
     search_terms=[
+        "E-commerce",
+        "E-commerce Specialist",
+        "E-commerce Manager",
+        "Analista de E-commerce",
+        "Supervisor de E-commerce",
+        "E-commerce Lead",
+        "Desenvolvedor E-commerce",
+        "Coordenador de E-commerce",
+        "E-commerce Operations",
         "AI Engineer",
         "Engenheiro de IA",
         "Product Manager",
         "Analytics Engineer",
-        "Supervisor de E-commerce",
-        "E-commerce Manager",
+        "Engenheiro de Dados",
         "Desenvolvedor Full Stack",
         "Software Engineer",
         "Product Owner",
         "Cientista de Dados",
-        "Engenheiro de Dados",
         "Tech Product Manager"
     ],
     search_location="Brasil",

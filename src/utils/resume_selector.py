@@ -40,16 +40,25 @@ def select_resume_path(job_title: str, job_description: str) -> str:
         "planejamento", "pcp", "s&op", "operações", "operacoes", "lean"
     ]
 
-    # Matching priority: AI -> Commercial -> Engineering -> Default
+    # Matching priority: Title match first, then full text
     selected_path = None
     category = "Padrão"
 
-    if any(kw in full_text for kw in ai_keywords):
+    if any(kw in title_lower for kw in comercial_keywords):
+        selected_path = questions_data.resume_comercial_path
+        category = "Comercial / E-commerce / Vendas"
+    elif any(kw in title_lower for kw in ai_keywords):
         selected_path = questions_data.resume_ia_path
-        category = "Inteligência Artificial (IA)"
+        category = "Inteligência Artificial (IA) & Tech"
+    elif any(kw in title_lower for kw in engineering_keywords):
+        selected_path = questions_data.resume_engenharia_path
+        category = "Engenharia"
     elif any(kw in full_text for kw in comercial_keywords):
         selected_path = questions_data.resume_comercial_path
-        category = "Comercial / Vendas"
+        category = "Comercial / E-commerce / Vendas"
+    elif any(kw in full_text for kw in ai_keywords):
+        selected_path = questions_data.resume_ia_path
+        category = "Inteligência Artificial (IA) & Tech"
     elif any(kw in full_text for kw in engineering_keywords):
         selected_path = questions_data.resume_engenharia_path
         category = "Engenharia"

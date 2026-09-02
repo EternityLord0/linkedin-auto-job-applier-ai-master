@@ -118,15 +118,15 @@ class BotEngine:
 
         # Build target search URLs for:
         # 1. Remote jobs across Brazil (f_WT=2, f_AL=true)
-        # 2. On-site/Hybrid jobs within 160km of SJRP (location=SJRP, distance=100, f_WT=1,3, f_AL=true)
+        # 2. On-site/Hybrid jobs within 200km of SJRP (location=SJRP, distance=125, f_WT=1,3, f_AL=true)
         search_urls = [
             (
                 f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=Brasil&f_WT=2&f_AL=true{date_param}",
                 "Remoto (Brasil todo)"
             ),
             (
-                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=100&f_WT=1%2C3&f_AL=true{date_param}",
-                "Presencial/Híbrido (até 160km SJRP)"
+                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=125&f_WT=1%2C3&f_AL=true{date_param}",
+                "Presencial/Híbrido (até 200km SJRP)"
             )
         ]
 
@@ -215,13 +215,17 @@ class BotEngine:
 
             sjrp_allowed = [
                 'são josé do rio preto', 'sao jose do rio preto', 'rio preto',
-                'mirassol', 'bady bassitt', 'tanabi', 'monte aprazível', 'monte aprazivel',
-                'josé bonifácio', 'jose bonifacio', 'catanduva', 'pindorama', 'santa adélia',
-                'novo horizonte', 'votuporanga', 'jales', 'fernandópolis', 'fernandopolis',
-                'olímpia', 'olimpia', 'barretos', 'bebedouro', 'jaboticabal', 'taquaritinga',
-                'matão', 'matao', 'araraquara', 'sertãozinho', 'sertaozinho', 'araçatuba', 'aracatuba',
-                'birigui', 'penápolis', 'penapolis', 'lins', 'promissão', 'promissao',
-                'frutal', 'iturama', 'guaíra', 'guaira'
+                'mirassol', 'bady bassitt', 'cedral', 'guapiaçu', 'guapiacu', 'nova granada',
+                'tanabi', 'monte aprazível', 'monte aprazivel', 'josé bonifácio', 'jose bonifacio',
+                'catanduva', 'pindorama', 'santa adélia', 'santa adelia', 'novo horizonte',
+                'votuporanga', 'jales', 'fernandópolis', 'fernandopolis', 'olímpia', 'olimpia',
+                'barretos', 'bebedouro', 'jaboticabal', 'taquaritinga', 'matão', 'matao',
+                'araraquara', 'sertãozinho', 'sertaozinho', 'ribeirão preto', 'ribeirao preto',
+                'franca', 'batatais', 'são carlos', 'sao carlos', 'ibitinga', 'bariri',
+                'araçatuba', 'aracatuba', 'birigui', 'penápolis', 'penapolis', 'lins',
+                'promissão', 'promissao', 'andradina', 'marília', 'marilia', 'bauru',
+                'garça', 'garca', 'tupã', 'tupa', 'assis', 'jaú', 'jau',
+                'frutal', 'iturama', 'guaíra', 'guaira', 'uberaba'
             ]
             far_sp_keywords = [
                 'são paulo, são paulo', 'sao paulo, sao paulo', 'grande são paulo', 'grande sao paulo',
@@ -230,17 +234,16 @@ class BotEngine:
                 'santos', 'jundiaí', 'jundiai', 'taubaté', 'taubate', 'são josé dos campos', 'sao jose dos campos',
                 'piracicaba', 'indaiatuba', 'americana', 'limeira', 'sumaré', 'sumare', 'hortolândia', 'hortolandia',
                 'valinhos', 'vinhedo', 'itu', 'cotia', 'taboão', 'taboao', 'mogi das cruzes', 'diadema', 'mogi guaçu',
-                'ribeirão preto', 'ribeirao preto', 'são carlos', 'sao carlos', 'marília', 'marilia', 'bauru', 'uberaba',
-                'goiás', 'goias', 'maranhão', 'maranhao', 'mato grosso', 'paraná', 'parana', 'rio de janeiro', 'minas gerais', 'bahia', 'ceará', 'ceara', 'pernambuco'
+                'goiás', 'goias', 'maranhão', 'maranhao', 'mato grosso', 'paraná', 'parana', 'rio de janeiro', 'bahia', 'ceará', 'ceara', 'pernambuco'
             ]
 
             if not card_is_remote and card_loc and card_loc != 'unknown':
                 is_within_sjrp = any(city in card_loc for city in sjrp_allowed) and not any(far in card_loc for far in far_sp_keywords)
                 if not is_within_sjrp:
-                    logger.info(f"Skipping job {job_id} before click: On-site/Hybrid job outside 160km SJRP ({details.get('work_location')})")
+                    logger.info(f"Skipping job {job_id} before click: On-site/Hybrid job outside 200km SJRP ({details.get('work_location')})")
                     self.rejected_jobs.add(job_id)
                     self.skip_count += 1
-                    self.csv.log_failed_job({'Job ID': job_id, 'Assumed Reason': f"Distant non-remote location (>160km SJRP): {details.get('work_location')}"})
+                    self.csv.log_failed_job({'Job ID': job_id, 'Assumed Reason': f"Distant non-remote location (>200km SJRP): {details.get('work_location')}"})
                     return False
 
         # Load job card details in right pane
@@ -254,7 +257,7 @@ class BotEngine:
             self.csv.log_failed_job({'Job ID': job_id, 'Assumed Reason': skip_reason})
             return False
 
-        # Filter location: Remote jobs anywhere in Brazil, On-site/Hybrid within ~160km of SJRP
+        # Filter location: Remote jobs anywhere in Brazil, On-site/Hybrid within ~200km of SJRP
         work_style = details.get('work_style', '').lower()
         work_loc = details.get('work_location', '').lower()
         job_text_check = (work_style + " " + work_loc + " " + (job_desc[:500] if job_desc else "")).lower()
@@ -264,13 +267,17 @@ class BotEngine:
         if not is_remote_mode and not is_remote:
             sjrp_allowed = [
                 'são josé do rio preto', 'sao jose do rio preto', 'rio preto',
-                'mirassol', 'bady bassitt', 'tanabi', 'monte aprazível', 'monte aprazivel',
-                'josé bonifácio', 'jose bonifacio', 'catanduva', 'pindorama', 'santa adélia',
-                'novo horizonte', 'votuporanga', 'jales', 'fernandópolis', 'fernandopolis',
-                'olímpia', 'olimpia', 'barretos', 'bebedouro', 'jaboticabal', 'taquaritinga',
-                'matão', 'matao', 'araraquara', 'sertãozinho', 'sertaozinho', 'araçatuba', 'aracatuba',
-                'birigui', 'penápolis', 'penapolis', 'lins', 'promissão', 'promissao',
-                'frutal', 'iturama', 'guaíra', 'guaira'
+                'mirassol', 'bady bassitt', 'cedral', 'guapiaçu', 'guapiacu', 'nova granada',
+                'tanabi', 'monte aprazível', 'monte aprazivel', 'josé bonifácio', 'jose bonifacio',
+                'catanduva', 'pindorama', 'santa adélia', 'santa adelia', 'novo horizonte',
+                'votuporanga', 'jales', 'fernandópolis', 'fernandopolis', 'olímpia', 'olimpia',
+                'barretos', 'bebedouro', 'jaboticabal', 'taquaritinga', 'matão', 'matao',
+                'araraquara', 'sertãozinho', 'sertaozinho', 'ribeirão preto', 'ribeirao preto',
+                'franca', 'batatais', 'são carlos', 'sao carlos', 'ibitinga', 'bariri',
+                'araçatuba', 'aracatuba', 'birigui', 'penápolis', 'penapolis', 'lins',
+                'promissão', 'promissao', 'andradina', 'marília', 'marilia', 'bauru',
+                'garça', 'garca', 'tupã', 'tupa', 'assis', 'jaú', 'jau',
+                'frutal', 'iturama', 'guaíra', 'guaira', 'uberaba'
             ]
             far_sp_keywords = [
                 'são paulo, são paulo', 'sao paulo, sao paulo', 'grande são paulo', 'grande sao paulo',
@@ -278,18 +285,17 @@ class BotEngine:
                 'são caetano', 'sao caetano', 'barueri', 'alphaville', 'campinas', 'sorocaba',
                 'santos', 'jundiaí', 'jundiai', 'taubaté', 'taubate', 'são josé dos campos', 'sao jose dos campos',
                 'piracicaba', 'indaiatuba', 'americana', 'limeira', 'sumaré', 'sumare', 'hortolândia', 'hortolandia',
-                'valinhos', 'vinhedo', 'itu', 'cotia', 'taboão', 'taboao', 'mogi das cruzes', 'diadema', 'mogi guaçu',
-                'ribeirão preto', 'ribeirao preto', 'são carlos', 'sao carlos', 'marília', 'marilia', 'bauru', 'uberaba'
+                'valinhos', 'vinhedo', 'itu', 'cotia', 'taboão', 'taboao', 'mogi das cruzes', 'diadema', 'mogi guaçu'
             ]
 
             is_within_sjrp_region = any(city in work_loc for city in sjrp_allowed) and not any(far in work_loc for far in far_sp_keywords)
 
             if not is_within_sjrp_region:
                 loc_disp = details.get('work_location') or work_loc or 'desconhecida'
-                logger.info(f"Skipping job {job_id}: On-site/Hybrid job outside ~160km SJRP target region ({loc_disp})")
+                logger.info(f"Skipping job {job_id}: On-site/Hybrid job outside ~200km SJRP target region ({loc_disp})")
                 self.rejected_jobs.add(job_id)
                 self.skip_count += 1
-                self.csv.log_failed_job({'Job ID': job_id, 'Assumed Reason': f"Distant non-remote location (>160km SJRP): {loc_disp}"})
+                self.csv.log_failed_job({'Job ID': job_id, 'Assumed Reason': f"Distant non-remote location (>200km SJRP): {loc_disp}"})
                 return False
 
         if self.ai.is_active and hasattr(self.ai.client, 'evaluate_job_relevance'):
