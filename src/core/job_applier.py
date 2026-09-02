@@ -121,8 +121,16 @@ class JobApplier:
 
                 self.scraper.interactor.sleep_buffer(1, 2)
 
-            # Final Screen Actions
+            # 4. Final Screen Actions & Scroll to Bottom
             self._handle_follow_company(modal, settings_data.follow_companies)
+            try:
+                # Scroll modal content to bottom so submit button and disclosures become interactable
+                scrollable_areas = modal.find_elements(By.XPATH, ".//div[contains(@class, 'jobs-easy-apply-modal__content') or contains(@class, 'artdeco-modal__content') or contains(@tabindex, '0')]")
+                for area in scrollable_areas:
+                    self.scraper.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", area)
+                time.sleep(1.0)
+            except Exception:
+                pass
 
             # --------
             if errored != "stuck" and self.pause_before_submit:
@@ -132,40 +140,63 @@ class JobApplier:
                 if decision == "Discard Application": raise Exception("Job application discarded by user!")
                 self.pause_before_submit = False if "Enable Auto-Submit" == decision else True
 
-            ## Submit Application (PT & EN)
+            ## 5. Submit Application (Multi-strategy detection for PT & EN)
             submit_btn = False
             submit_labels = [
                 "Submit application", "Submit", "Enviar candidatura", "Enviar",
                 "Enviar inscrição", "Concluir candidatura", "Concluir inscrição",
                 "Avançar para a candidatura", "Candidatar-se", "Fazer candidatura"
             ]
+
+            # Strategy A: Span text matching
             for label in submit_labels:
-                if self.scraper.interactor.wait_span_click(label, timeout=1.5, scroll_top=True):
+                if self.scraper.interactor.wait_span_click(label, timeout=2.0, scroll_top=False):
                     submit_btn = True
-                    logger.info(f"Successfully clicked submit button: '{label}'")
+                    logger.info(f"Successfully clicked submit button via span: '{label}'")
                     break
 
-            # Fallback directly on modal footer buttons if span matching was missed
+            # Strategy B: Button by aria-label
             if not submit_btn:
                 try:
-                    footer_buttons = modal.find_elements(By.XPATH, ".//footer//button[contains(@class, 'artdeco-button--primary')]")
-                    for btn in footer_buttons:
-                        btn_txt = btn.text.strip().lower()
-                        if any(term in btn_txt for term in ['submit', 'enviar', 'concluir', 'candidat']):
-                            self.scraper.interactor.human_click(btn)
+                    aria_buttons = modal.find_elements(
+                        By.XPATH,
+                        ".//button[contains(@aria-label, 'Submit') or contains(@aria-label, 'Enviar') or contains(@aria-label, 'Concluir') or contains(@aria-label, 'candidatura')]"
+                    )
+                    for btn in aria_buttons:
+                        if btn.is_displayed():
+                            self.scraper.driver.execute_script("arguments[0].click();", btn)
                             submit_btn = True
-                            logger.info(f"Clicked primary submit button in modal footer: '{btn_txt}'")
+                            logger.info(f"Clicked submit button via aria-label: '{btn.get_attribute('aria-label')}'")
                             break
                 except Exception as e:
-                    logger.debug(f"Footer primary button check: {e}")
+                    logger.debug(f"Aria-label submit check: {e}")
+
+            # Strategy C: Primary action buttons in modal footer / actionbar
+            if not submit_btn:
+                try:
+                    footer_buttons = modal.find_elements(
+                        By.XPATH,
+                        ".//div[contains(@class, 'artdeco-modal__actionbar')]//button | .//div[contains(@class, 'display-flex justify-flex-end')]//button | .//footer//button | .//button[contains(@class, 'artdeco-button--primary')]"
+                    )
+                    for btn in footer_buttons:
+                        btn_txt = btn.text.strip().lower()
+                        btn_aria = (btn.get_attribute("aria-label") or "").lower()
+                        combined = btn_txt + " " + btn_aria
+                        if any(term in combined for term in ['submit', 'enviar', 'concluir', 'candidat', 'inscrição', 'inscricao', 'aplicar']):
+                            self.scraper.driver.execute_script("arguments[0].click();", btn)
+                            submit_btn = True
+                            logger.info(f"Clicked primary submit button via actionbar/footer: '{btn_txt or btn_aria}'")
+                            break
+                except Exception as e:
+                    logger.debug(f"Actionbar primary button check: {e}")
 
             if submit_btn or (errored != "stuck" and self.pause_before_submit and "Yes" in pyautogui.confirm(
                     "You submitted the application, didn't you ??", "Failed to find Submit Application!",
                     ["Yes", "No"])):
-                time.sleep(1.5)
+                time.sleep(2.0)
                 self._handle_post_submit_popup()
                 for done_text in ["Done", "Concluído", "Concluir", "Fechar", "Dismiss"]:
-                    self.scraper.interactor.wait_span_click(done_text, timeout=1)
+                    self.scraper.interactor.wait_span_click(done_text, timeout=1.5)
                 return questions_list
             else:
                 logger.warning("Since Submit Application failed, discarding the job application...")
