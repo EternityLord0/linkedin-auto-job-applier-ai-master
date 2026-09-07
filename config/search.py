@@ -11,6 +11,10 @@ from config.schema.search_model import SearchModel
 search_data = SearchModel(
     search_terms=[
         "E-commerce",
+        "Mercado Livre",
+        "Shopee",
+        "Marketplace",
+        "Analista de Marketplace",
         "E-commerce Specialist",
         "E-commerce Manager",
         "Analista de E-commerce",

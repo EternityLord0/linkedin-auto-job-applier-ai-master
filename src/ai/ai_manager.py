@@ -65,6 +65,15 @@ class AIManager:
             logger.error(f"AI failed to answer question '{question}': {e}")
             return ""
 
+    def generate_cover_letter_or_essay(self, question: str, job_description: str, cv_category: str = None) -> str:
+        if self.is_active and self.client and hasattr(self.client, 'generate_cover_letter_or_essay'):
+            try:
+                return self.client.generate_cover_letter_or_essay(question, job_description, cv_category)
+            except Exception as e:
+                logger.error(f"Failed to generate essay via AI client: {e}")
+        from config.questions import questions_data
+        return questions_data.cover_letter
+
     def set_resume_path(self, path: str):
         if self.is_active and self.client and hasattr(self.client, 'set_resume_path'):
             self.client.set_resume_path(path)

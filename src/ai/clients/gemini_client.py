@@ -155,6 +155,52 @@ Respond ONLY with "NO" if it is completely unrelated (e.g., Nurse, Medical Docto
             logger.warning(f"Failed to evaluate job relevance with Gemini: {e}")
             return True
 
+    def generate_cover_letter_or_essay(self, question: str, job_description: str, cv_category: str = None) -> str:
+        """
+        Generates a customized, professional 2-3 paragraph response for open-ended essay questions
+        (e.g., 'Why do you want to work here?', 'Describe a relevant project', Cover Letter)
+        based on the candidate's active resume domain and the job requirements.
+        """
+        if not self.model:
+            return questions_data.cover_letter
+
+        logger.info(f"-- GENERATING CUSTOM ESSAY / COVER LETTER VIA GEMINI for: '{question}'")
+
+        domain_highlight = ""
+        if cv_category:
+            domain_highlight = f"Focus particularly on the candidate's achievements in: {cv_category}."
+
+        prompt = f"""
+Você é Gabriel Henrique Vicentin Caldeira, um profissional com sólida experiência em:
+1. AI Product Engineering (desenvolvimento de produtos com React, TypeScript, Supabase, APIs de LLMs como Gemini e Claude).
+2. Liderança e Inteligência de E-commerce / Marketplaces na The Duracell Company (crescimento de +20% em 2024 e +50% em 2025, Power BI com DAX avançado, automação em Python e gestão de canais como Mercado Livre e Shopee).
+3. Engenharia Química pela UFSCar e especialização em Gestão de Projetos pela USP/Esalq (metodologias ágeis, PDCA, otimização de processos).
+{domain_highlight}
+
+Pergunta ou solicitação do formulário de candidatura:
+"{question}"
+
+Descrição da vaga e empresa:
+"{job_description[:2000] if job_description else 'Empresa inovadora em crescimento'}"
+
+INSTRUÇÕES:
+- Escreva uma resposta direta, assertiva e envolvente em 2 a 3 parágrafos objetivos (entre 70 e 150 palavras).
+- Destaque resultados quantitativos reais do candidato que conectem diretamente aos requisitos da vaga.
+- Tom profissional, confiante e sem clichês vazios.
+- Mantenha o idioma em conformidade com a pergunta e a descrição da vaga (escreva em Português se a vaga for em português, ou em Inglês se for em inglês).
+- Retorne APENAS o texto da resposta, sem introduções como "Aqui está a resposta" ou aspas desnecessárias.
+"""
+        try:
+            response = self.model.generate_content(prompt, safety_settings=self.safety_settings)
+            if response and response.text:
+                essay = response.text.strip()
+                logger.info(f"Generated tailored essay ({len(essay)} chars)")
+                return essay
+        except Exception as e:
+            logger.warning(f"Failed to generate custom essay with Gemini: {e}")
+
+        return questions_data.cover_letter
+
     def _try_local_fast_answer(self, question: str, question_type: str, options: list | None = None) -> str | None:
         """Local pattern matcher to answer common form questions without API calls (0 tokens)."""
         q_lower = question.lower()

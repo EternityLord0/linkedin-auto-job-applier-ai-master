@@ -117,16 +117,20 @@ class BotEngine:
         elif search_data.date_posted in ["Any time", "A qualquer momento", "Qualquer momento"]:
             date_param = ""
 
+        # Build dynamic Easy Apply filter (omitted for Marketplaces/Shopee/Mercado Livre to collect external jobs)
+        is_marketplace_term = any(m in search_term.lower() for m in ['shopee', 'mercado livre', 'mercadolivre', 'marketplace', 'marketplaces', 'magalu', 'amazon'])
+        easy_apply_filter = "" if (is_marketplace_term or not search_data.easy_apply_only) else "&f_AL=true"
+
         # Build target search URLs for:
-        # 1. Remote jobs across Brazil (f_WT=2, f_AL=true)
-        # 2. Regional jobs within 200km of SJRP (location=SJRP, distance=125 miles, f_AL=true)
+        # 1. Remote jobs across Brazil (f_WT=2)
+        # 2. Regional jobs within 200km of SJRP (location=SJRP, distance=125 miles)
         search_urls = [
             (
-                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=Brasil&f_WT=2&f_AL=true{date_param}",
+                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=Brasil&f_WT=2{easy_apply_filter}{date_param}",
                 "Remoto (Brasil todo)"
             ),
             (
-                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=125&f_AL=true{date_param}",
+                f"https://www.linkedin.com/jobs/search/?keywords={encoded_term}&location=S%C3%A3o%20Jos%C3%A9%20do%20Rio%20Preto%2C%20S%C3%A3o%20Paulo%2C%20Brasil&distance=125{easy_apply_filter}{date_param}",
                 "Presencial/Híbrido (até 200km SJRP)"
             )
         ]
@@ -345,12 +349,48 @@ class BotEngine:
                         'Questions Found': str(questions_list),
                         'Connect Request': 'In Development'
                     })
+                    from src.data.status_manager import status_manager
+                    status_manager.set_status(job_id, "Candidatado")
+
                     delay_s = random.uniform(15, 25)
                     logger.info(f"⏳ Candidatura enviada com sucesso! Aguardando {delay_s:.1f}s (delay humanizado anti-bloqueio)...")
                     time.sleep(delay_s)
                 else:
                     self.failed_count += 1
                     self.scraper.discard_application()
+            else:
+                # External Application Flow (Shopee, Mercado Livre, Gupy, etc.)
+                external_url = self.scraper.handle_external_apply()
+                if not external_url:
+                    external_url = f"https://www.linkedin.com/jobs/view/{job_id}"
+
+                logger.info(f"🌐 [Vaga Externa Coletada] {details.get('company')} - {job_title} -> {external_url}")
+                self.external_jobs_count += 1
+                self.applied_jobs.add(job_id)
+
+                self.csv.log_submitted_job({
+                    'Job ID': job_id,
+                    'Title': details.get('title', 'Unknown'),
+                    'Company': details.get('company', 'Unknown'),
+                    'Work Location': details.get('work_location', 'Unknown'),
+                    'Work Style': details.get('work_style', 'Unknown'),
+                    'About Job': job_desc,
+                    'Experience required': 'Unknown',
+                    'Skills required': str(skills_required),
+                    'HR Name': 'Unknown',
+                    'HR Link': 'Unknown',
+                    'Resume': os.path.basename(selected_resume),
+                    'Re-posted': False,
+                    'Date Posted': 'Unknown',
+                    'Date Applied': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'Job Link': f"https://www.linkedin.com/jobs/view/{job_id}",
+                    'External Job link': external_url,
+                    'Questions Found': 'External Application Link Captured',
+                    'Connect Request': 'In Development'
+                })
+                from src.data.status_manager import status_manager
+                status_manager.set_status(job_id, "Vaga Externa (Aplicar)")
+
             return True
 
         except Exception as e:

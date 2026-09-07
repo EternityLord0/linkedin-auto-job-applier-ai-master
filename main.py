@@ -20,6 +20,16 @@ from config.secrets import secrets_data
 
 
 def main():
+    import sys
+    if "--marketplaces" in sys.argv:
+        from config.search import search_data
+        search_data.search_terms = [
+            "Mercado Livre", "Shopee", "Marketplace", "Analista de Marketplace",
+            "E-commerce", "E-commerce Specialist", "E-commerce Manager",
+            "Supervisor de E-commerce", "E-commerce Operations", "Coordenador de E-commerce"
+        ]
+        logger.info("🎯 [MODO MARKETPLACES ATIVADO] Buscando vagas de Mercado Livre, Shopee e E-commerce!")
+
     logger.info("Initializing LinkedIn Auto Applier...")
 
     # 1. Setup Infrastructure Layers

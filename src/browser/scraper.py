@@ -562,14 +562,23 @@ class LinkedInScraper:
 
         return bool(is_easy_apply)
 
-    def handle_external_apply(self):
-        """Handles closing the external application tab if a new one opened."""
+    def handle_external_apply(self) -> str:
+        """Handles capturing external application link and closing the external tab if a new one opened."""
+        external_url = ""
         windows = self.driver.window_handles
         if len(windows) > 1:
-            self.driver.switch_to.window(windows[-1])
-            if settings_data.close_tabs:
-                self.driver.close()
-            self.driver.switch_to.window(windows[0])
+            try:
+                self.driver.switch_to.window(windows[-1])
+                import time
+                time.sleep(1.2)
+                external_url = self.driver.current_url
+                if settings_data.close_tabs:
+                    self.driver.close()
+            except Exception as e:
+                logger.debug(f"Could not capture external URL: {e}")
+            finally:
+                self.driver.switch_to.window(windows[0])
+        return external_url
 
     def is_already_applied(self, job_element) -> bool:
         """Safely checks if a job is already applied to without throwing exceptions."""

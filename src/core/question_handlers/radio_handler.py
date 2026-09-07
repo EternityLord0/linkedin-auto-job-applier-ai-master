@@ -11,6 +11,7 @@ from config.personal import personal_data
 from config.questions import questions_data
 from config.settings import settings_data
 from src.core.question_handlers.base_handler import BaseQuestionHandler
+from src.data.question_cache import question_cache
 from src.utils.logger import logger
 
 
@@ -110,6 +111,11 @@ class RadioHandler(BaseQuestionHandler):
         # Skip if already answered and overwrite disabled
         if not settings_data.overwrite_previous_answers and prev_answer:
             return (label_text, prev_answer, "radio")
+
+        # 0. Check Question Cache (0 Tokens & Instant)
+        cached_opt = question_cache.get_answer(label_text, options_labels)
+        if cached_opt:
+            answer = cached_opt
 
         # ==========================================================
         # Deterministic Rules (PT & EN)
@@ -322,6 +328,9 @@ class RadioHandler(BaseQuestionHandler):
                     break
             except Exception:
                 continue
+
+        if final_answer and final_answer != "Unknown":
+            question_cache.save_answer(label_text, final_answer)
 
         logger.info(
             f"Answered Radio Question -> "

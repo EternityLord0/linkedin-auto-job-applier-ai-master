@@ -35,12 +35,22 @@ class CSVManager:
         return job_ids
 
     def get_all_applied_jobs_for_ui(self) -> list[dict]:
-        """Used by the Flask web server to display the dashboard."""
+        """Used by the Flask web server to display the dashboard with live CRM status."""
+        from src.data.status_manager import status_manager
         jobs = []
         try:
             with open(settings_data.file_name, 'r', encoding='utf-8') as file:
                 reader = csv.DictReader(file)
                 for row in reader:
+                    job_id = row.get('Job ID', '')
+                    ext_link = (row.get('External Job link') or '').strip()
+                    is_external = ext_link and ("easy applied" not in ext_link.lower()) and ext_link.startswith("http")
+                    default_st = "Vaga Externa (Aplicar)" if is_external else "Candidatado"
+                    
+                    st_info = status_manager.get_status(job_id, default=default_st)
+                    row['Status'] = st_info.get('status', default_st)
+                    row['Notes'] = st_info.get('notes', '')
+                    row['Status_Updated_At'] = st_info.get('updated_at', '')
                     jobs.append(row)
         except FileNotFoundError:
             logger.error(f"No applications history found at {settings_data.file_name}")

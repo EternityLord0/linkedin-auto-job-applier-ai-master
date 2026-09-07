@@ -14,6 +14,7 @@ from config.personal import personal_data
 from config.questions import questions_data
 from config.settings import settings_data
 from src.core.question_handlers.base_handler import BaseQuestionHandler
+from src.data.question_cache import question_cache
 from src.utils.logger import logger
 
 
@@ -77,8 +78,12 @@ class SelectHandler(BaseQuestionHandler):
         prev_answer = selected_option
 
         if settings_data.overwrite_previous_answers or is_unselected:
+            # 0. Check Question Cache (0 Tokens & Instant)
+            cached_ans = question_cache.get_answer(label_text, valid_options)
+            if cached_ans:
+                answer = cached_ans
             # Match Exact Conditions
-            if any(term in label_lower for term in ['phone country code', 'código do país', 'código de discagem', 'country code', 'código país', 'discagem']):
+            elif any(term in label_lower for term in ['phone country code', 'código do país', 'código de discagem', 'country code', 'código país', 'discagem']):
                 answer = "Brazil"
             elif any(term in label_lower for term in ['email', 'phone', 'telefone', 'celular']):
                 if is_unselected:
@@ -231,4 +236,8 @@ class SelectHandler(BaseQuestionHandler):
                         select_obj.select_by_visible_text(chosen)
                         answer = select_obj.first_selected_option.text
 
-        return (label_text, select_obj.first_selected_option.text, "select")
+        selected_text = select_obj.first_selected_option.text
+        if selected_text and selected_text.lower() not in unselected_placeholders:
+            question_cache.save_answer(label_text, selected_text)
+
+        return (label_text, selected_text, "select")

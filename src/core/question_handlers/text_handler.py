@@ -8,6 +8,7 @@ from config.personal import personal_data
 from config.questions import questions_data
 from config.settings import settings_data
 from src.core.question_handlers.base_handler import BaseQuestionHandler
+from src.data.question_cache import question_cache
 
 
 class TextHandler(BaseQuestionHandler):
@@ -39,14 +40,29 @@ class TextHandler(BaseQuestionHandler):
 
         # 3. Match Exact Conditions (PT & EN)
         if not prev_answer or settings_data.overwrite_previous_answers:
-            # Textarea specifics
-            if question_type == "textarea":
-                if any(term in label_lower for term in ['summary', 'resumo', 'sobre você', 'sobre voce', 'bio', 'apresentação', 'apresentacao']):
+            # 1. Textarea & Open-ended Essay Questions (Custom AI Generation)
+            if question_type == "textarea" or any(term in label_lower for term in [
+                'por que você', 'por que voce', 'por que quer trabalhar', 'porque quer trabalhar',
+                'por que se interessou', 'motivação', 'motivacao', 'descreva um projeto',
+                'descreva uma situação', 'descreva uma realizacao', 'conte sobre', 'fale sobre você',
+                'fale sobre voce', 'qual seu diferencial', 'resuma sua trajetória', 'resuma sua trajetoria',
+                'diferencial', 'why do you want', 'why should we hire', 'tell us about', 'describe a project',
+                'cover letter', 'carta de apresentação', 'carta de apresentacao', 'carta de motivação'
+            ]):
+                if self.ai and self.ai.is_active and hasattr(self.ai, 'generate_cover_letter_or_essay'):
+                    answer = self.ai.generate_cover_letter_or_essay(label_text, job_description)
+                elif any(term in label_lower for term in ['summary', 'resumo', 'sobre você', 'sobre voce', 'bio', 'apresentação', 'apresentacao']):
                     answer = questions_data.linkedin_summary
-                elif any(term in label_lower for term in ['cover', 'carta de apresentação', 'carta de apresentacao', 'carta de motivacao', 'carta de motivação']):
+                else:
                     answer = questions_data.cover_letter
 
-            # Standard Text Input specifics
+            # 2. Check Question Cache (0 Tokens & Instant)
+            if answer == "":
+                cached_ans = question_cache.get_answer(label_text)
+                if cached_ans:
+                    answer = cached_ans
+
+            # 3. Standard Text Input specifics (Rules)
             if answer == "":
                 # Phone / Telefone / Celular
                 if any(term in label_lower for term in ['phone', 'mobile', 'telefone', 'celular', 'whatsapp', 'contato']):
@@ -225,6 +241,10 @@ class TextHandler(BaseQuestionHandler):
                             self.scraper.actions.send_keys(Keys.ARROW_DOWN).send_keys(Keys.ENTER).send_keys(Keys.TAB).perform()
                     except Exception:
                         self.scraper.actions.send_keys(Keys.ARROW_DOWN).send_keys(Keys.ENTER).send_keys(Keys.TAB).perform()
+
+                # Save learned answer to cache for future 0-token instant lookup
+                if answer_str and question_type != "textarea" and len(answer_str) < 100:
+                    question_cache.save_answer(label_text, answer_str)
 
         return (label_text, input_element.get_attribute("value"), question_type)
 
