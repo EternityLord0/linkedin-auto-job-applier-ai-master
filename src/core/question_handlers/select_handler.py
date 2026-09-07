@@ -32,24 +32,45 @@ class SelectHandler(BaseQuestionHandler):
             label_text = label_element.text if label_element else "Unknown"
 
         label_lower = label_text.lower()
-        selected_option = select_obj.first_selected_option.text
-        options_text = [option.text for option in select_obj.options]
 
         unselected_placeholders = [
             "select an option", "selecionar opção", "selecione uma opção",
-            "selecionar", "selecione", "select", "seleccionar una opción",
+            "selecionar", "selecione", "select", "seleccionar una opção",
             "seleccionar", ""
         ]
-        
-        is_unselected = (
-            selected_option.strip().lower() in unselected_placeholders
-            or not select_obj.first_selected_option.get_attribute("value")
-            or select_obj.first_selected_option.get_attribute("value").strip() == ""
-        )
+
+        # Fast JS extraction: fetch selected and all options in 1 single browser call
+        # instead of 750+ slow Selenium HTTP roundtrips that freeze on large dropdowns (e.g. phone country codes)
+        try:
+            js_data = self.scraper.driver.execute_script("""
+                const el = arguments[0];
+                const selIdx = el.selectedIndex >= 0 ? el.selectedIndex : 0;
+                const selOpt = el.options[selIdx];
+                return {
+                    selectedText: selOpt ? selOpt.text : '',
+                    selectedValue: selOpt ? selOpt.value : '',
+                    options: Array.from(el.options).map(o => (o.text || '').trim())
+                };
+            """, select_element)
+            selected_option = (js_data.get("selectedText") or "").strip()
+            selected_val = (js_data.get("selectedValue") or "").strip()
+            options_text = [t for t in js_data.get("options", []) if t]
+            is_unselected = (
+                selected_option.lower() in unselected_placeholders
+                or not selected_val
+            )
+        except Exception:
+            selected_option = select_obj.first_selected_option.text
+            options_text = [option.text for option in select_obj.options]
+            is_unselected = (
+                selected_option.strip().lower() in unselected_placeholders
+                or not select_obj.first_selected_option.get_attribute("value")
+                or select_obj.first_selected_option.get_attribute("value").strip() == ""
+            )
 
         valid_options = [
-            opt.text.strip() for opt in select_obj.options
-            if opt.text.strip() and opt.text.strip().lower() not in unselected_placeholders
+            t for t in options_text
+            if t.lower() not in unselected_placeholders
         ]
 
         answer = 'Yes'
@@ -57,8 +78,13 @@ class SelectHandler(BaseQuestionHandler):
 
         if settings_data.overwrite_previous_answers or is_unselected:
             # Match Exact Conditions
-            if any(term in label_lower for term in ['email', 'phone', 'telefone', 'celular']):
-                answer = prev_answer
+            if any(term in label_lower for term in ['phone country code', 'código do país', 'código de discagem', 'country code', 'código país', 'discagem']):
+                answer = "Brazil"
+            elif any(term in label_lower for term in ['email', 'phone', 'telefone', 'celular']):
+                if is_unselected:
+                    answer = "Brazil" if any(term in label_lower for term in ['phone', 'telefone', 'celular']) else prev_answer
+                else:
+                    answer = prev_answer
             elif any(term in label_lower for term in ['gender', 'sex', 'gênero', 'genero', 'sexo']):
                 answer = personal_data.gender
             elif any(term in label_lower for term in ['disability', 'deficiência', 'deficiencia', 'pcd']):

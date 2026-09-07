@@ -6,7 +6,8 @@
 # src/ai/clients/gemini_client.py
 import json
 import os
-
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import google.generativeai as genai
 
 from config.personal import personal_data

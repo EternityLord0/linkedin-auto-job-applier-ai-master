@@ -475,6 +475,31 @@ class LinkedInScraper:
                             f"Required experience ({req_exp}) exceeds current ({allowed_exp})"
                         )
 
+            # Check applicants saturation (Skip jobs with > 100 applicants to prioritize fresh high-response jobs)
+            try:
+                top_card_text = ""
+                top_cards = self.driver.find_elements(
+                    By.XPATH,
+                    "//div[contains(@class, 'jobs-unified-top-card')] | //div[contains(@class, 'job-details-jobs-unified-top-card')] | //div[contains(@class, 'job-view-layout')]"
+                )
+                for tc in top_cards:
+                    if tc.is_displayed():
+                        top_card_text = tc.text.lower()
+                        break
+
+                if top_card_text:
+                    saturated_phrases = [
+                        "mais de 100 candidaturas", "over 100 applicants",
+                        "mais de 200 candidaturas", "over 200 applicants"
+                    ]
+                    if any(phrase in top_card_text for phrase in saturated_phrases):
+                        return (
+                            job_desc,
+                            "Job is saturated (Over 100 applicants). Prioritizing fresh high-conversion opportunities."
+                        )
+            except Exception:
+                pass
+
             return job_desc, None
 
         except Exception as e:

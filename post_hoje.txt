@@ -1,0 +1,8 @@
+Cole aqui o texto do seu post gerado no Gemini Spark!
+Quando você rodar a opção 4 no menu, ele lerá automaticamente este arquivo, sugerirá o melhor banner de tecnologia e publicará no seu LinkedIn com opção de prévia.
+
+Exemplo:
+Construir soluções com Inteligência Artificial vai muito além de integrar uma API de LLM.
+O verdadeiro desafio da Engenharia de IA está em criar sistemas robustos, com baixa latência, respostas estruturadas e total controle sobre o fluxo de dados.
+
+#InteligenciaArtificial #AIEngineering #LLMs #Python

@@ -4,6 +4,7 @@
 #  For a copy, see <https://opensource.org/licenses/MIT>.
 
 # src/core/bot_engine.py
+import random
 import time
 from datetime import datetime
 
@@ -344,6 +345,9 @@ class BotEngine:
                         'Questions Found': str(questions_list),
                         'Connect Request': 'In Development'
                     })
+                    delay_s = random.uniform(15, 25)
+                    logger.info(f"⏳ Candidatura enviada com sucesso! Aguardando {delay_s:.1f}s (delay humanizado anti-bloqueio)...")
+                    time.sleep(delay_s)
                 else:
                     self.failed_count += 1
                     self.scraper.discard_application()

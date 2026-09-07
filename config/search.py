@@ -34,7 +34,7 @@ search_data = SearchModel(
     switch_number=30,
     randomize_search_order=False,
     sort_by="",
-    date_posted="Past week", # Filtra vagas da última semana
+    date_posted="Past 24 hours", # Prioriza vagas das últimas 24h (maior taxa de retorno)
     salary="",
     easy_apply_only=True,
     experience_level=[],
@@ -50,7 +50,11 @@ search_data = SearchModel(
     under_10_applicants=False,
     in_your_network=False,
     fair_chance_employer=False,
-    job_title_bad_words=["Estágio", "Intern", "Jovem Aprendiz", "Director", "VP", "Trainee", "Voluntário"],
+    job_title_bad_words=[
+        "Estágio", "Intern", "Jovem Aprendiz", "Director", "VP", "Trainee", "Voluntário",
+        "Auxiliar", "Assistente", "Operador", "Balconista", "Telemarketing", "Atendente",
+        "Vendedor Externo", "Recepcionista", "Estagiário", "Estagiaria"
+    ],
     job_desc_bad_words=["Sem remuneração", "Voluntário"],
     about_company_bad_words=["Crossover"],
     about_company_good_words=[],
